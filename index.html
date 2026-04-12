@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="nl">
-<head> 
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0a0a0a">
@@ -51,6 +51,12 @@
     .pin-char{width:52px;height:62px;border-radius:14px;border:1px solid #333;background:#111;display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff}
     .pin-char.filled{background:#1e1e1e;border-color:#555}
     .section-title{color:#555;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:12px}
+  
+    .btn-primary[disabled],.btn-ghost[disabled],.btn-danger[disabled]{opacity:.55;cursor:not-allowed}
+    #s-success{background:#0a0a0a;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px}
+    #s-success.active{display:flex}
+    .success-circle{width:96px;height:96px;border-radius:50%;background:#14291a;border:3px solid #4ade80;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;animation:popIn .35s cubic-bezier(.175,.885,.32,1.275)}
+    @keyframes popIn{0%{transform:scale(0)}100%{transform:scale(1)}}
   </style>
 </head>
 <body>
@@ -134,7 +140,7 @@
         <div class="fg"><label>Omschrijving</label><input type="text" id="a-desc" placeholder="bijv. Nike schoenen"></div>
         <div class="fg"><label>Datum</label><input type="date" id="a-date"></div>
         <div id="a-err" class="alert-err hidden"></div>
-        <button class="btn-primary" onclick="submitExpense()">Indienen</button>
+        <button class="btn-primary" onclick="submitExpense(this)">Indienen</button>
       </div>
     </div>
   </div>
@@ -148,8 +154,8 @@
       <div class="fg"><label>Datum</label><input type="date" id="e-date"></div>
       <div id="e-err" class="alert-err hidden"></div>
       <div class="row">
-        <button class="btn-primary" style="flex:1" onclick="saveEdit()">Opslaan</button>
-        <button class="btn-danger" style="flex:1" onclick="deleteExpense()">Verwijderen</button>
+        <button class="btn-primary" style="flex:1" onclick="saveEdit(this)">Opslaan</button>
+        <button class="btn-danger" style="flex:1" onclick="deleteExpense(this)">Verwijderen</button>
       </div>
     </div>
   </div>
@@ -180,24 +186,35 @@
       <div class="card" style="margin-bottom:12px">
         <p style="font-weight:700;margin-bottom:16px;font-size:16px">Maandelijkse bijdragen</p>
         <div id="bijdrage-settings"></div>
-        <button class="btn-ghost btn-sm" style="margin-top:6px" onclick="saveMonthlyAmounts()">Opslaan</button>
+        <button class="btn-ghost btn-sm" style="margin-top:6px" onclick="saveMonthlyAmounts(this)">Opslaan</button>
         <div id="bij-ok" class="alert-ok hidden" style="margin-top:10px">Opgeslagen</div>
       </div>
 
       <div class="card" style="margin-bottom:12px">
         <p style="font-weight:700;margin-bottom:16px;font-size:16px">Pincodes</p>
         <div id="pin-settings"></div>
-        <button class="btn-ghost btn-sm" style="margin-top:6px" onclick="savePins()">Opslaan</button>
+        <button class="btn-ghost btn-sm" style="margin-top:6px" onclick="savePins(this)">Opslaan</button>
         <div id="pin-ok" class="alert-ok hidden" style="margin-top:10px">Opgeslagen</div>
       </div>
 
       <div class="card">
         <p style="font-weight:700;margin-bottom:16px;font-size:16px">Budget waarschuwing</p>
         <div class="fg"><label>Drempelwaarde (€)</label><input type="number" id="warn-threshold" min="0" step="5"></div>
-        <button class="btn-ghost btn-sm" onclick="saveThreshold()">Opslaan</button>
+        <button class="btn-ghost btn-sm" onclick="saveThreshold(this)">Opslaan</button>
         <div id="threshold-ok" class="alert-ok hidden" style="margin-top:10px">Opgeslagen</div>
       </div>
     </div>
+  </div>
+
+
+  <div id="s-success" class="screen">
+    <div class="success-circle">
+      <svg width="42" height="42" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L19 7" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <p style="font-size:26px;font-weight:700;letter-spacing:-0.5px;margin-bottom:10px" id="success-title">Gelukt</p>
+    <p style="color:#666;font-size:15px;margin-bottom:8px" id="success-desc"></p>
+    <p style="color:#444;font-size:14px;margin-bottom:36px">De app is bijgewerkt.</p>
+    <button class="btn-primary" style="max-width:280px" onclick="afterSuccess()">Terug</button>
   </div>
 
 <script>
@@ -221,7 +238,9 @@ const app = {
   pinTarget: null,
   pinBuffer: '',
   editId: null,
-  editFrom: null
+  editFrom: null,
+  locks: {},
+  successReturnScreen: 's-home'
 };
 
 function detect(desc=''){
@@ -323,6 +342,41 @@ function renderHome(){
       </div>
     </div>
   `).join('');
+}
+
+
+function setButtonBusy(btn, busy, text){
+  if(!btn) return;
+  if(busy){
+    if(!btn.dataset.originalText) btn.dataset.originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = text || 'Bezig...';
+  } else {
+    btn.disabled = false;
+    if(btn.dataset.originalText) btn.textContent = btn.dataset.originalText;
+  }
+}
+async function withLock(key, fn){
+  if(app.locks[key]) return;
+  app.locks[key] = true;
+  try { return await fn(); } finally { app.locks[key] = false; }
+}
+function showSuccess(title, desc, returnScreen){
+  document.getElementById('success-title').textContent = title || 'Gelukt';
+  document.getElementById('success-desc').textContent = desc || '';
+  app.successReturnScreen = returnScreen || 's-home';
+  showScreen('s-success');
+}
+function afterSuccess(){
+  if(app.successReturnScreen === 's-parent'){
+    renderParent();
+    showScreen('s-parent');
+  } else if(app.successReturnScreen === 's-kid'){
+    if(app.currentKidId) renderKidScreen();
+    showScreen('s-kid');
+  } else {
+    showScreen('s-home');
+  }
 }
 
 function buildPinGrid(){
@@ -470,34 +524,48 @@ function renderKidExpenseRow(e){
     </div>
   `;
 }
-async function submitExpense(){
-  const amount = parseFloat(document.getElementById('a-amount').value);
-  const description = document.getElementById('a-desc').value.trim();
-  const date = document.getElementById('a-date').value;
-  const errEl = document.getElementById('a-err');
-  errEl.classList.add('hidden');
-  if(!amount || amount <= 0){ errEl.textContent = 'Voer een geldig bedrag in'; errEl.classList.remove('hidden'); return; }
-  if(!description){ errEl.textContent = 'Voer een omschrijving in'; errEl.classList.remove('hidden'); return; }
-  try{
-    const data = await api('addExpense', { kid_id: app.currentKidId, amount, description, date });
-    app.state = data.data;
-    renderAll();
-    document.getElementById('a-amount').value = '';
-    document.getElementById('a-desc').value = '';
-    document.getElementById('a-date').value = todayIso();
-    document.querySelector('#s-kid .tab').click();
-  }catch(err){
-    errEl.textContent = err.message;
-    errEl.classList.remove('hidden');
-  }
+async function submitExpense(btn){
+  return withLock('submitExpense', async () => {
+    const amount = parseFloat(document.getElementById('a-amount').value);
+    const description = document.getElementById('a-desc').value.trim();
+    const date = document.getElementById('a-date').value;
+    const errEl = document.getElementById('a-err');
+    errEl.classList.add('hidden');
+    if(!amount || amount <= 0){ errEl.textContent = 'Voer een geldig bedrag in'; errEl.classList.remove('hidden'); return; }
+    if(!description){ errEl.textContent = 'Voer een omschrijving in'; errEl.classList.remove('hidden'); return; }
+    setButtonBusy(btn, true, 'Indienen...');
+    try{
+      const data = await api('addExpense', { kid_id: app.currentKidId, amount, description, date });
+      app.state = data.data;
+      renderAll();
+      document.getElementById('a-amount').value = '';
+      document.getElementById('a-desc').value = '';
+      document.getElementById('a-date').value = todayIso();
+      showSuccess('Ingediend!', 'De uitgave is verstuurd naar papa/mama.', 's-kid');
+    }catch(err){
+      errEl.textContent = err.message;
+      errEl.classList.remove('hidden');
+      setButtonBusy(btn, false);
+    }
+  });
 }
+
 async function submitRetour(id){
-  try{
-    const data = await api('addReturn', {expense_id: id});
-    app.state = data.data;
-    renderAll();
-  }catch(err){ alert(err.message); }
+  return withLock('return_'+id, async () => {
+    const btn = document.querySelector(`[data-action="retour"][data-id="${id}"]`);
+    setButtonBusy(btn, true, 'Bezig...');
+    try{
+      const data = await api('addReturn', {expense_id: id});
+      app.state = data.data;
+      renderAll();
+      showSuccess('Retour ingediend!', 'De retour staat klaar voor verwerking.', 's-kid');
+    }catch(err){
+      alert(err.message);
+      setButtonBusy(btn, false);
+    }
+  });
 }
+
 function openEdit(id, from){
   const expense = (app.state.expenses || []).find(x => String(x.id) === String(id));
   if(!expense || String(expense.status) !== 'pending') return;
@@ -513,32 +581,43 @@ function backFromEdit(){
   if(app.editFrom === 'parent') showScreen('s-parent');
   else { renderKidScreen(); showScreen('s-kid'); }
 }
-async function saveEdit(){
-  const amount = parseFloat(document.getElementById('e-amount').value);
-  const description = document.getElementById('e-desc').value.trim();
-  const date = document.getElementById('e-date').value;
-  const errEl = document.getElementById('e-err');
-  errEl.classList.add('hidden');
-  if(!amount || amount <= 0){ errEl.textContent = 'Voer een geldig bedrag in'; errEl.classList.remove('hidden'); return; }
-  if(!description){ errEl.textContent = 'Voer een omschrijving in'; errEl.classList.remove('hidden'); return; }
-  try{
-    const data = await api('updateExpense', { expense_id: app.editId, amount, description, date });
-    app.state = data.data;
-    renderAll();
-    backFromEdit();
-  }catch(err){
-    errEl.textContent = err.message;
-    errEl.classList.remove('hidden');
-  }
+async function saveEdit(btn){
+  return withLock('saveEdit', async () => {
+    const amount = parseFloat(document.getElementById('e-amount').value);
+    const description = document.getElementById('e-desc').value.trim();
+    const date = document.getElementById('e-date').value;
+    const errEl = document.getElementById('e-err');
+    errEl.classList.add('hidden');
+    if(!amount || amount <= 0){ errEl.textContent = 'Voer een geldig bedrag in'; errEl.classList.remove('hidden'); return; }
+    if(!description){ errEl.textContent = 'Voer een omschrijving in'; errEl.classList.remove('hidden'); return; }
+    setButtonBusy(btn, true, 'Opslaan...');
+    try{
+      const data = await api('updateExpense', { expense_id: app.editId, amount, description, date });
+      app.state = data.data;
+      renderAll();
+      backFromEdit();
+    }catch(err){
+      errEl.textContent = err.message;
+      errEl.classList.remove('hidden');
+      setButtonBusy(btn, false);
+    }
+  });
 }
-async function deleteExpense(){
+
+async function deleteExpense(btn){
   if(!confirm('Uitgave verwijderen?')) return;
-  try{
-    const data = await api('deleteExpense', {expense_id: app.editId});
-    app.state = data.data;
-    renderAll();
-    backFromEdit();
-  }catch(err){ alert(err.message); }
+  return withLock('deleteExpense_'+app.editId, async () => {
+    setButtonBusy(btn, true, 'Verwijderen...');
+    try{
+      const data = await api('deleteExpense', {expense_id: app.editId});
+      app.state = data.data;
+      renderAll();
+      backFromEdit();
+    }catch(err){
+      alert(err.message);
+      setButtonBusy(btn, false);
+    }
+  });
 }
 
 function renderParent(){
@@ -596,9 +675,9 @@ function renderPendingList(){
           <p style="font-size:20px;font-weight:800">€${euro(e.amount)}</p>
         </div>
         <div class="row">
-          <button class="btn-primary" onclick="approveExpense('${escapeAttr(e.id)}')">${isRetour ? 'Retour verwerken ✓' : 'Betaald ✓'}</button>
+          <button class="btn-primary" onclick="approveExpense('${escapeAttr(e.id)}', this)">${isRetour ? 'Retour verwerken ✓' : 'Betaald ✓'}</button>
           ${isRetour
-            ? `<button class="btn-danger" onclick="rejectReturn('${escapeAttr(e.id)}')">Weigeren</button>`
+            ? `<button class="btn-danger" onclick="rejectReturn('${escapeAttr(e.id)}', this)">Weigeren</button>`
             : `<button class="btn-ghost btn-sm" onclick="openEdit('${escapeAttr(e.id)}','parent')">Wijzig</button>`}
         </div>
       </div>
@@ -629,7 +708,7 @@ function renderAllList(){
             <span class="${String(e.status)==='approved' ? 'badge-paid' : 'badge-open'}">${String(e.status)==='approved' ? 'betaald' : 'open'}</span><br>
             ${String(e.status)==='pending'
               ? `<button class="btn-ghost btn-sm" style="margin-top:6px" onclick="openEdit('${escapeAttr(e.id)}','parent')">Wijzig</button>`
-              : `<button class="btn-danger btn-sm" style="margin-top:6px" onclick="parentDelete('${escapeAttr(e.id)}')">Verwijder</button>`}
+              : `<button class="btn-danger btn-sm" style="margin-top:6px" onclick="parentDelete('${escapeAttr(e.id)}', this)">Verwijder</button>`}
           </div>
         </div>
       </div>
@@ -685,58 +764,96 @@ function renderParentSettings(){
   document.getElementById('pin-ok').classList.add('hidden');
   document.getElementById('threshold-ok').classList.add('hidden');
 }
-async function approveExpense(id){
-  try{
-    const data = await api('approveExpense', {expense_id: id});
-    app.state = data.data;
-    renderAll();
-  }catch(err){ alert(err.message); }
+async function approveExpense(id, btn){
+  return withLock('approve_'+id, async () => {
+    setButtonBusy(btn, true, 'Verwerken...');
+    try{
+      const expense = (app.state.expenses || []).find(e => String(e.id) === String(id));
+      const data = await api('approveExpense', {expense_id: id});
+      app.state = data.data;
+      renderAll();
+      showSuccess('Verwerkt!', expense && expense.type === 'return' ? 'De retour is verwerkt.' : 'De betaling is verwerkt.', 's-parent');
+    }catch(err){
+      alert(err.message);
+      setButtonBusy(btn, false);
+    }
+  });
 }
-async function rejectReturn(id){
+
+async function rejectReturn(id, btn){
   if(!confirm('Retour weigeren?')) return;
-  try{
-    const data = await api('deleteExpense', {expense_id: id});
-    app.state = data.data;
-    renderAll();
-  }catch(err){ alert(err.message); }
+  return withLock('reject_'+id, async () => {
+    setButtonBusy(btn, true, 'Weigeren...');
+    try{
+      const data = await api('deleteExpense', {expense_id: id});
+      app.state = data.data;
+      renderAll();
+    }catch(err){
+      alert(err.message);
+      setButtonBusy(btn, false);
+    }
+  });
 }
-async function parentDelete(id){
+
+async function parentDelete(id, btn){
   if(!confirm('Uitgave verwijderen?')) return;
-  try{
-    const data = await api('deleteExpense', {expense_id: id});
-    app.state = data.data;
-    renderAll();
-  }catch(err){ alert(err.message); }
+  return withLock('parentDelete_'+id, async () => {
+    setButtonBusy(btn, true, 'Verwijderen...');
+    try{
+      const data = await api('deleteExpense', {expense_id: id});
+      app.state = data.data;
+      renderAll();
+    }catch(err){
+      alert(err.message);
+      setButtonBusy(btn, false);
+    }
+  });
 }
-async function saveMonthlyAmounts(){
-  const kids = app.state.kids.filter(k => String(k.active) !== 'false' && String(k.active) !== '0');
-  const items = kids.map(k => ({ kid_id: k.kid_id, monthly_amount: Number(document.getElementById('bij-' + k.kid_id).value || 0) }));
-  try{
-    const data = await api('saveMonthlyAmounts', {items});
-    app.state = data.data;
-    renderAll();
-    document.getElementById('bij-ok').classList.remove('hidden');
-  }catch(err){ alert(err.message); }
+
+async function saveMonthlyAmounts(btn){
+  return withLock('saveMonthlyAmounts', async () => {
+    const kids = app.state.kids.filter(k => String(k.active) !== 'false' && String(k.active) !== '0');
+    const items = kids.map(k => ({ kid_id: k.kid_id, monthly_amount: Number(document.getElementById('bij-' + k.kid_id).value || 0) }));
+    setButtonBusy(btn, true, 'Opslaan...');
+    try{
+      const data = await api('saveMonthlyAmounts', {items});
+      app.state = data.data;
+      renderAll();
+      document.getElementById('bij-ok').classList.remove('hidden');
+      setButtonBusy(btn, false);
+    }catch(err){ alert(err.message); setButtonBusy(btn, false); }
+  });
 }
-async function savePins(){
-  const kids = app.state.kids.filter(k => String(k.active) !== 'false' && String(k.active) !== '0');
-  const kidPins = kids.map(k => ({ kid_id: k.kid_id, pin: document.getElementById('pin-' + k.kid_id).value.trim() }));
-  const parentPin = document.getElementById('pin-parent').value.trim();
-  try{
-    const data = await api('savePins', {kid_pins: kidPins, parent_pin: parentPin});
-    app.state = data.data;
-    renderAll();
-    document.getElementById('pin-ok').classList.remove('hidden');
-  }catch(err){ alert(err.message); }
+
+async function savePins(btn){
+  return withLock('savePins', async () => {
+    const kids = app.state.kids.filter(k => String(k.active) !== 'false' && String(k.active) !== '0');
+    const kidPins = kids.map(k => ({ kid_id: k.kid_id, pin: document.getElementById('pin-' + k.kid_id).value.trim() }));
+    const parentPin = document.getElementById('pin-parent').value.trim();
+    setButtonBusy(btn, true, 'Opslaan...');
+    try{
+      const data = await api('savePins', {kid_pins: kidPins, parent_pin: parentPin});
+      app.state = data.data;
+      renderAll();
+      document.getElementById('pin-ok').classList.remove('hidden');
+      setButtonBusy(btn, false);
+    }catch(err){ alert(err.message); setButtonBusy(btn, false); }
+  });
 }
-async function saveThreshold(){
-  try{
-    const data = await api('saveThreshold', { warning_threshold: Number(document.getElementById('warn-threshold').value || 0) });
-    app.state = data.data;
-    renderAll();
-    document.getElementById('threshold-ok').classList.remove('hidden');
-  }catch(err){ alert(err.message); }
+
+async function saveThreshold(btn){
+  return withLock('saveThreshold', async () => {
+    setButtonBusy(btn, true, 'Opslaan...');
+    try{
+      const data = await api('saveThreshold', { warning_threshold: Number(document.getElementById('warn-threshold').value || 0) });
+      app.state = data.data;
+      renderAll();
+      document.getElementById('threshold-ok').classList.remove('hidden');
+      setButtonBusy(btn, false);
+    }catch(err){ alert(err.message); setButtonBusy(btn, false); }
+  });
 }
+
 function parentTab(tab, btn){
   document.querySelectorAll('#s-parent .tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
