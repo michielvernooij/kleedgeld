@@ -673,7 +673,7 @@ function renderParentSettings(){
   `).join('');
   document.getElementById('pin-settings').innerHTML = [
     ...kids.map(k => ({id:k.kid_id, name:k.name, pin:k.pin})),
-    {id:'parent', name:'Ouder', pin:settingValue('parent_pin','0000')}
+    {id:'parent', name:'Ouder', pin:settingValue('parent_pin','0106')}
   ].map(k => `
     <div class="fg">
       <label>Pincode ${escapeHtml(k.name)}</label>
