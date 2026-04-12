@@ -750,15 +750,26 @@ function renderParentSettings(){
       <input type="number" id="bij-${escapeAttr(k.kid_id)}" value="${escapeAttr(k.monthly_amount)}" min="0" step="5">
     </div>
   `).join('');
-  document.getElementById('pin-settings').innerHTML = [
-    ...kids.map(k => ({id:k.kid_id, name:k.name, pin:k.pin})),
-    {id:'parent', name:'Ouder', pin:settingValue('parent_pin','0106')}
-  ].map(k => `
+  document.getElementById('pin-settings').innerHTML = `
     <div class="fg">
-      <label>Pincode ${escapeHtml(k.name)}</label>
-      <input type="text" id="pin-${escapeAttr(k.id)}" value="${escapeAttr(String(k.pin || '').padStart(4,'0'))}" maxlength="4" inputmode="numeric">
+      <label>Nieuwe ouderpin</label>
+      <input type="password" id="pin-parent-new" placeholder="Laat leeg om niet te wijzigen" maxlength="4" inputmode="numeric">
     </div>
-  `).join('');
+    <div class="fg">
+      <label>Bevestig ouderpin</label>
+      <input type="password" id="pin-parent-confirm" placeholder="Herhaal nieuwe ouderpin" maxlength="4" inputmode="numeric">
+    </div>
+    ${kids.map(k => `
+      <div class="fg">
+        <label>Nieuwe pincode ${escapeHtml(k.name)}</label>
+        <input type="password" id="pin-${escapeAttr(k.kid_id)}-new" placeholder="Laat leeg om niet te wijzigen" maxlength="4" inputmode="numeric">
+      </div>
+      <div class="fg">
+        <label>Bevestig pincode ${escapeHtml(k.name)}</label>
+        <input type="password" id="pin-${escapeAttr(k.kid_id)}-confirm" placeholder="Herhaal nieuwe pincode" maxlength="4" inputmode="numeric">
+      </div>
+    `).join('')}
+  `;
   document.getElementById('warn-threshold').value = settingValue('warning_threshold', 75);
   document.getElementById('bij-ok').classList.add('hidden');
   document.getElementById('pin-ok').classList.add('hidden');
@@ -828,11 +839,41 @@ async function saveMonthlyAmounts(btn){
 async function savePins(btn){
   return withLock('savePins', async () => {
     const kids = app.state.kids.filter(k => String(k.active) !== 'false' && String(k.active) !== '0');
-    const kidPins = kids.map(k => ({ kid_id: k.kid_id, pin: document.getElementById('pin-' + k.kid_id).value.trim() }));
-    const parentPin = document.getElementById('pin-parent').value.trim();
+    const parentNew = document.getElementById('pin-parent-new').value.trim();
+    const parentConfirm = document.getElementById('pin-parent-confirm').value.trim();
+
+    if ((parentNew || parentConfirm) && parentNew !== parentConfirm) {
+      alert('De twee ouderpincodes zijn niet gelijk.');
+      return;
+    }
+    if (parentNew && !/^\d{4}$/.test(parentNew)) {
+      alert('De nieuwe ouderpin moet uit 4 cijfers bestaan.');
+      return;
+    }
+
+    const kidPins = [];
+    for (const k of kids) {
+      const p1 = document.getElementById('pin-' + k.kid_id + '-new').value.trim();
+      const p2 = document.getElementById('pin-' + k.kid_id + '-confirm').value.trim();
+      if ((p1 || p2) && p1 !== p2) {
+        alert('De twee pincodes voor ' + k.name + ' zijn niet gelijk.');
+        return;
+      }
+      if (p1 && !/^\d{4}$/.test(p1)) {
+        alert('De nieuwe pincode voor ' + k.name + ' moet uit 4 cijfers bestaan.');
+        return;
+      }
+      if (p1) kidPins.push({ kid_id: k.kid_id, pin: p1 });
+    }
+
+    if (!parentNew && kidPins.length === 0) {
+      alert('Vul minstens één nieuwe pincode in om iets op te slaan.');
+      return;
+    }
+
     setButtonBusy(btn, true, 'Opslaan...');
     try{
-      const data = await api('savePins', {kid_pins: kidPins, parent_pin: parentPin});
+      const data = await api('savePins', {kid_pins: kidPins, parent_pin: parentNew});
       app.state = data.data;
       renderAll();
       document.getElementById('pin-ok').classList.remove('hidden');
