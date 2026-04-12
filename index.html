@@ -866,6 +866,44 @@ function logoutToHome(){ app.currentKidId = null; app.editId = null; app.editFro
 function escapeHtml(str){ return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function escapeAttr(str){ return escapeHtml(str); }
 
+
+function resetAddExpenseForm(){
+  const amountEl = document.getElementById('a-amount');
+  const descEl = document.getElementById('a-desc');
+  const dateEl = document.getElementById('a-date');
+  const errEl = document.getElementById('a-err');
+  const submitBtn = document.querySelector('#kt-add .btn-primary');
+  if(amountEl) amountEl.value = '';
+  if(descEl) descEl.value = '';
+  if(dateEl) dateEl.value = todayIso();
+  if(errEl) errEl.classList.add('hidden');
+  if(submitBtn){
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('is-busy');
+    if(submitBtn.dataset.originalText) submitBtn.textContent = submitBtn.dataset.originalText;
+    else submitBtn.textContent = 'Indienen';
+  }
+}
+
+function switchKidToAddTab(){
+  const tabs = document.querySelectorAll('#s-kid .tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  if(tabs[1]) tabs[1].classList.add('active');
+  const hist = document.getElementById('kt-history');
+  const add = document.getElementById('kt-add');
+  if(hist) hist.classList.add('hidden');
+  if(add) add.classList.remove('hidden');
+}
+
+
+
+function afterConfetti(){
+  resetAddExpenseForm();
+  renderKidScreen();
+  showScreen('s-kid');
+  switchKidToAddTab();
+}
+
 buildPinGrid();
 loadApp();
 </script>
