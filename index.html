@@ -46,25 +46,21 @@
     .hidden{display:none}
     .loading{padding:40px 0;text-align:center;color:#777}
     .pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:280px;margin:0 auto}
-    .pin-btn{padding:20px;font-size:24px;text-align:center;background:#111;border:1px solid #222;border-radius:16px;cursor:pointer;color:#fff;transition:transform .08s ease, background .15s ease, border-color .15s ease, box-shadow .18s ease}
-    .pin-btn:active{transform:scale(.95);background:#171717;border-color:#3a3a3a;box-shadow:0 0 0 1px rgba(255,255,255,.04) inset}
-    .pin-display{display:flex;gap:12px;justify-content:center;margin:24px 0 22px;transform:translateZ(0)}
-    .pin-display.shake{animation:pinShake .36s ease}
-    .pin-display.success{animation:pinSuccess .42s ease}
-    .pin-char{width:52px;height:62px;border-radius:14px;border:1px solid #333;background:#111;display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;transition:transform .14s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease}
+    .pin-btn{padding:20px;font-size:24px;text-align:center;background:#111;border:1px solid #222;border-radius:16px;cursor:pointer;color:#fff}
+    .pin-display{display:flex;gap:12px;justify-content:center;margin:24px 0 22px}
+    .pin-char{width:52px;height:62px;border-radius:14px;border:1px solid #333;background:#111;display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff}
     .pin-char.filled{background:#1e1e1e;border-color:#555}
-    .pin-char.pop{animation:pinPop .18s ease}
-    .pin-char.error{background:#1a0505;border-color:#7f1d1d;box-shadow:0 0 0 1px rgba(252,165,165,.15) inset}
-    .pin-char.success{background:#0d2413;border-color:#22c55e;box-shadow:0 0 0 1px rgba(74,222,128,.18) inset,0 0 22px rgba(74,222,128,.08)}
-    @keyframes pinPop{0%{transform:scale(.86)}70%{transform:scale(1.08)}100%{transform:scale(1)}}
-    @keyframes pinShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
-    @keyframes pinSuccess{0%{transform:scale(1)}50%{transform:scale(1.03)}100%{transform:scale(1)}}
     .section-title{color:#555;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:12px}
   
     .btn-primary[disabled],.btn-ghost[disabled],.btn-danger[disabled]{opacity:.55;cursor:not-allowed}
     #s-success{background:#0a0a0a;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px}
     #s-success.active{display:flex}
     .success-circle{width:96px;height:96px;border-radius:50%;background:#14291a;border:3px solid #4ade80;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;animation:popIn .35s cubic-bezier(.175,.885,.32,1.275)}
+    .photo-upload-grid{display:flex;gap:16px;flex-wrap:wrap}
+    .photo-upload-label{display:flex;align-items:center;justify-content:center;width:72px;height:72px;border-radius:50%;border:2px dashed #444;cursor:pointer;position:relative;overflow:hidden;background:#111}
+    .photo-upload-label img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+    .photo-upload-label .edit-badge{position:absolute;bottom:0;right:0;background:#fff;color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+    .photo-upload-label.busy{opacity:.6;pointer-events:none}
     @keyframes popIn{0%{transform:scale(0)}100%{transform:scale(1)}}
   </style>
 </head>
@@ -193,6 +189,12 @@
 
     <div id="pt-settings" class="hidden">
       <div class="card" style="margin-bottom:12px">
+        <p style="font-weight:700;margin-bottom:16px;font-size:16px">Profielfoto's</p>
+        <div id="photo-uploads" class="photo-upload-grid"></div>
+        <div id="photo-ok" class="alert-ok hidden" style="margin-top:12px">Foto opgeslagen</div>
+      </div>
+
+      <div class="card" style="margin-bottom:12px">
         <p style="font-weight:700;margin-bottom:16px;font-size:16px">Maandelijkse bijdragen</p>
         <div id="bijdrage-settings"></div>
         <button class="btn-ghost btn-sm" style="margin-top:6px" onclick="saveMonthlyAmounts(this)">Opslaan</button>
@@ -272,7 +274,11 @@ function getExpensesForKid(kidId){ return (app.state?.expenses || []).filter(e =
 function getPhoto(id){
   const kid = getKidById(id);
   if(kid && kid.photo_url) return kid.photo_url;
-  if(id === 'parent') return 'https://placehold.co/200x200/png?text=Pa%2FMa';
+  if(id === 'parent'){
+    const parentPhoto = settingValue('parent_photo_url', '');
+    if(parentPhoto) return parentPhoto;
+    return 'https://placehold.co/200x200/png?text=Pa%2FMa';
+  }
   return 'https://placehold.co/200x200/png?text=' + encodeURIComponent(kid ? kid.name : 'Kid');
 }
 function settingValue(key, fallback=''){ const settings = app.state?.settings || {}; return settings[key] ?? fallback; }
@@ -389,83 +395,64 @@ function afterSuccess(){
 }
 
 
-function soundClick(){
-  try{
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = 'triangle';
-    o.frequency.value = 640;
-    g.gain.value = 0.012;
-    o.connect(g); g.connect(ctx.destination);
-    o.start();
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.04);
-    o.stop(ctx.currentTime + 0.045);
-  }catch(e){}
+async function compressImageFile(file, maxDim = 360, quality = 0.78){
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const img = await new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = dataUrl;
+  });
+
+  let { width, height } = img;
+  const scale = Math.min(1, maxDim / Math.max(width, height));
+  width = Math.round(width * scale);
+  height = Math.round(height * scale);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, width, height);
+  return canvas.toDataURL('image/jpeg', quality);
 }
-function soundGood(){
-  try{
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const o1 = ctx.createOscillator(), o2 = ctx.createOscillator();
-    const g = ctx.createGain();
-    o1.type = 'sine'; o2.type = 'sine';
-    o1.frequency.value = 660; o2.frequency.value = 880;
-    g.gain.value = 0.018;
-    o1.connect(g); o2.connect(g); g.connect(ctx.destination);
-    o1.start(); o2.start();
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.10);
-    o1.stop(ctx.currentTime + 0.10); o2.stop(ctx.currentTime + 0.10);
-  }catch(e){}
-}
-function soundError(){
-  try{
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = 'sawtooth';
-    o.frequency.setValueAtTime(320, ctx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(180, ctx.currentTime + 0.09);
-    g.gain.value = 0.014;
-    o.connect(g); g.connect(ctx.destination);
-    o.start();
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.10);
-    o.stop(ctx.currentTime + 0.10);
-  }catch(e){}
-}
-function haptic(pattern=12){
-  try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
-}
-function animatePinError(){
-  const display = document.querySelector('.pin-display');
-  if(display){
-    display.classList.remove('shake');
-    void display.offsetWidth;
-    display.classList.add('shake');
-    setTimeout(()=>display.classList.remove('shake'), 380);
-  }
-  for(let i=0;i<4;i++){
-    const el=document.getElementById('pc'+i);
-    if(el){
-      el.classList.add('error');
-      setTimeout(()=>el.classList.remove('error'), 420);
+
+async function uploadPhoto(targetId, input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+
+  const label = document.getElementById('photo-label-' + targetId);
+  const ok = document.getElementById('photo-ok');
+
+  return withLock('uploadPhoto_' + targetId, async () => {
+    try{
+      if(label) label.classList.add('busy');
+      const dataUrl = await compressImageFile(file, 360, 0.78);
+      const data = await api('uploadPhoto', {
+        target_id: targetId,
+        filename: file.name || (targetId + '.jpg'),
+        data_url: dataUrl
+      });
+      app.state = data.data;
+      renderAll();
+      if(ok){
+        ok.classList.remove('hidden');
+        setTimeout(() => ok.classList.add('hidden'), 1800);
+      }
+      showSuccess('Foto opgeslagen!', 'De profielfoto is bijgewerkt.', 's-parent');
+    }catch(err){
+      alert(err.message);
+    }finally{
+      if(label) label.classList.remove('busy');
+      input.value = '';
     }
-  }
-}
-function animatePinSuccess(){
-  const display = document.querySelector('.pin-display');
-  if(display){
-    display.classList.remove('success');
-    void display.offsetWidth;
-    display.classList.add('success');
-    setTimeout(()=>display.classList.remove('success'), 450);
-  }
-  for(let i=0;i<4;i++){
-    const el=document.getElementById('pc'+i);
-    if(el){
-      el.classList.add('success');
-      setTimeout(()=>el.classList.remove('success'), 480);
-    }
-  }
+  });
 }
 
 function buildPinGrid(){
@@ -479,22 +466,15 @@ function resetPin(){
   for(let i=0;i<4;i++){
     const el = document.getElementById('pc'+i);
     el.textContent = '_';
-    el.classList.remove('filled','pop','error','success');
+    el.classList.remove('filled');
   }
 }
 function updatePinDisplay(){
   for(let i=0;i<4;i++){
     const filled = i < app.pinBuffer.length;
     const el = document.getElementById('pc'+i);
-    const wasFilled = el.classList.contains('filled');
     el.textContent = filled ? '•' : '_';
     el.classList.toggle('filled', filled);
-    if(filled && !wasFilled){
-      el.classList.remove('pop');
-      void el.offsetWidth;
-      el.classList.add('pop');
-      setTimeout(()=>el.classList.remove('pop'), 220);
-    }
   }
 }
 function goKid(kidId){
@@ -516,24 +496,12 @@ function goParent(){
   showScreen('s-pin');
 }
 function tapPin(key){
-  if(key === '⌫'){
-    app.pinBuffer = app.pinBuffer.slice(0,-1);
-    haptic(10);
-    updatePinDisplay();
-    return;
-  }
-  if(key === 'OK'){
-    validatePin();
-    return;
-  }
+  if(key === '⌫'){ app.pinBuffer = app.pinBuffer.slice(0,-1); updatePinDisplay(); return; }
+  if(key === 'OK'){ validatePin(); return; }
   if(app.pinBuffer.length >= 4) return;
   app.pinBuffer += key;
-  haptic(12);
-  soundClick();
   updatePinDisplay();
-  if(app.pinBuffer.length === 4){
-    setTimeout(validatePin, 120);
-  }
+  if(app.pinBuffer.length === 4) validatePin();
 }
 async function validatePin(){
   if(app.pinBuffer.length !== 4 || !app.pinTarget) return;
@@ -544,19 +512,14 @@ async function validatePin(){
       pin: app.pinBuffer
     });
     if(data.data.valid){
-      haptic(22);
-      soundGood();
-      animatePinSuccess();
-      setTimeout(() => {
-        if(app.pinTarget.role === 'parent'){
-          showScreen('s-parent');
-        } else {
-          app.currentKidId = app.pinTarget.kidId;
-          renderKidScreen();
-          showScreen('s-kid');
-        }
-        resetPin();
-      }, 180);
+      if(app.pinTarget.role === 'parent'){
+        showScreen('s-parent');
+      } else {
+        app.currentKidId = app.pinTarget.kidId;
+        renderKidScreen();
+        showScreen('s-kid');
+      }
+      resetPin();
       return;
     }
     throw new Error('Onjuiste pincode');
@@ -564,13 +527,8 @@ async function validatePin(){
     const el = document.getElementById('pin-err');
     el.textContent = err.message;
     el.classList.remove('hidden');
-    haptic([18,40,18]);
-    soundError();
-    animatePinError();
-    setTimeout(() => {
-      app.pinBuffer = '';
-      updatePinDisplay();
-    }, 260);
+    app.pinBuffer = '';
+    updatePinDisplay();
   }
 }
 
@@ -862,12 +820,28 @@ function renderBijstortingen(){
 }
 function renderParentSettings(){
   const kids = app.state.kids.filter(k => String(k.active) !== 'false' && String(k.active) !== '0');
+
+  document.getElementById('photo-uploads').innerHTML = [
+    ...kids.map(k => ({ id: k.kid_id, name: k.name })),
+    { id: 'parent', name: 'Pa & Ma' }
+  ].map(p => `
+    <div style="text-align:center">
+      <label class="photo-upload-label" id="photo-label-${escapeAttr(p.id)}" for="photo-input-${escapeAttr(p.id)}">
+        <img id="photo-img-${escapeAttr(p.id)}" src="${escapeAttr(getPhoto(p.id))}">
+        <div class="edit-badge">✎</div>
+      </label>
+      <input type="file" id="photo-input-${escapeAttr(p.id)}" accept="image/*" style="display:none" onchange="uploadPhoto('${escapeAttr(p.id)}', this)">
+      <p class="muted" style="font-size:12px;margin-top:6px">${escapeHtml(p.name)}</p>
+    </div>
+  `).join('');
+
   document.getElementById('bijdrage-settings').innerHTML = kids.map(k => `
     <div class="fg">
       <label>${escapeHtml(k.name)} (€/mnd)</label>
       <input type="number" id="bij-${escapeAttr(k.kid_id)}" value="${escapeAttr(k.monthly_amount)}" min="0" step="5">
     </div>
   `).join('');
+
   document.getElementById('pin-settings').innerHTML = `
     <div class="fg">
       <label>Nieuwe ouderpin</label>
@@ -889,6 +863,7 @@ function renderParentSettings(){
     `).join('')}
   `;
   document.getElementById('warn-threshold').value = settingValue('warning_threshold', 75);
+  document.getElementById('photo-ok').classList.add('hidden');
   document.getElementById('bij-ok').classList.add('hidden');
   document.getElementById('pin-ok').classList.add('hidden');
   document.getElementById('threshold-ok').classList.add('hidden');
