@@ -24,11 +24,32 @@
     .tabs{display:flex;gap:0;background:#111;border-radius:12px;padding:3px;margin-bottom:20px}
     .tab{flex:1;padding:10px 4px;font-size:12px;border-radius:10px;cursor:pointer;background:transparent;color:#666;border:none;font-weight:600}
     .tab.active{background:#1e1e1e;color:#fff}
-    .btn-primary{background:#fff;color:#000;border:none;border-radius:14px;padding:15px 20px;font-size:16px;font-weight:700;cursor:pointer;width:100%}
-    .btn-ghost{background:transparent;border:1px solid #333;border-radius:12px;padding:11px 16px;font-size:14px;color:#fff;cursor:pointer}
-    .btn-danger{background:transparent;border:1px solid #7f1d1d;color:#fca5a5;border-radius:12px;padding:11px 16px;font-size:14px;cursor:pointer}
-    .btn-sm{padding:8px 12px;font-size:12px;border-radius:10px}
-    .back-btn{background:none;border:none;color:#777;font-size:15px;cursor:pointer;padding:6px 0 20px 0}
+    .btn-primary{
+      background:#fff;color:#000;border:none;border-radius:16px;
+      padding:15px 20px;font-size:16px;font-weight:500;cursor:pointer;width:100%;
+      transition:transform .12s,opacity .12s;-webkit-tap-highlight-color:transparent}
+    .btn-primary:active{transform:scale(.97);opacity:.88}
+    .btn-secondary{
+      background:#1e1e1e;color:#e0e0e0;border:1px solid #2e2e2e;border-radius:16px;
+      padding:15px 20px;font-size:16px;font-weight:500;cursor:pointer;width:100%;
+      transition:transform .12s,background .15s;-webkit-tap-highlight-color:transparent}
+    .btn-secondary:active{transform:scale(.97);background:#252525}
+    .btn-ghost{
+      background:transparent;border:none;border-radius:10px;
+      padding:10px 14px;font-size:14px;color:#888;cursor:pointer;
+      transition:color .15s;-webkit-tap-highlight-color:transparent}
+    .btn-ghost:active{color:#fff}
+    .btn-danger{
+      background:transparent;border:none;
+      padding:10px 4px;font-size:14px;color:#f87171;cursor:pointer;
+      -webkit-tap-highlight-color:transparent}
+    .btn-danger:active{opacity:.65}
+    .btn-sm{padding:7px 11px;font-size:12px;border-radius:10px}
+    .back-btn{
+      background:none;border:none;color:#777;font-size:15px;cursor:pointer;
+      padding:8px 0 20px 0;display:inline-flex;align-items:center;gap:4px;
+      -webkit-tap-highlight-color:transparent;transition:color .15s}
+    .back-btn:active{color:#fff}
     .fg{margin-bottom:18px}
     label{font-size:12px;color:#666;letter-spacing:.06em;text-transform:uppercase;font-weight:600;display:block;margin-bottom:6px}
     input,select{width:100%;padding:14px 16px;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:12px;font-size:16px;color:#fff;outline:none}
@@ -84,8 +105,21 @@
     @keyframes pinBounce{0%{transform:scale(1)}45%{transform:scale(1.28)}100%{transform:scale(1)}}
     .pin-dot.bounce{animation:pinBounce .22s ease}
     .section-title{color:#555;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:12px}
+    .settings-group{margin-bottom:28px}
+    .settings-group-label{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#555;margin-bottom:8px;padding:0 4px}
+    .settings-card{background:#161616;border:.5px solid #242424;border-radius:18px;overflow:hidden}
+    .settings-row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:.5px solid #1e1e1e}
+    .settings-row:last-child{border-bottom:none}
+    .settings-row-title{font-size:15px;font-weight:400;color:#e0e0e0}
+    .settings-row-sub{font-size:12px;color:#555;margin-top:2px}
+    .settings-input{width:100%;background:transparent;border:none;border-bottom:.5px solid #2a2a2a;
+      padding:12px 0;font-size:16px;font-weight:400;color:#fff;outline:none;border-radius:0}
+    .settings-input:focus{border-bottom-color:#555}
+    .settings-pin-row{padding:14px 16px;border-bottom:.5px solid #1e1e1e}
+    .settings-pin-row:last-child{border-bottom:none}
+    .settings-pin-label{font-size:13px;color:#555;margin-bottom:8px;font-weight:500}
   
-    .btn-primary[disabled],.btn-ghost[disabled],.btn-danger[disabled]{opacity:.55;cursor:not-allowed}
+    .btn-primary[disabled],.btn-secondary[disabled],.btn-ghost[disabled],.btn-danger[disabled]{opacity:.45;cursor:not-allowed;transform:none}
     #s-success{background:#0a0a0a;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px}
     #s-success.active{display:flex}
     .success-circle{width:96px;height:96px;border-radius:50%;background:#14291a;border:3px solid #4ade80;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;animation:popIn .35s cubic-bezier(.175,.885,.32,1.275)}
@@ -122,7 +156,7 @@
           <p class="section-title" style="margin-bottom:6px">Kleedgeld</p>
           <p style="font-size:26px;font-weight:800;letter-spacing:-0.5px">Wie ben jij?</p>
         </div>
-        <button class="btn-ghost btn-sm" onclick="reloadApp()">↺</button>
+        <button class="btn-secondary btn-sm" onclick="reloadApp()" style="width:auto;padding:8px 12px;font-size:15px;border-radius:10px;color:#666;background:transparent;border:none">↺</button>
       </div>
     </div>
 
@@ -145,7 +179,7 @@
 
   <div id="s-pin" class="screen center">
     <div style="text-align:left">
-      <button class="back-btn" onclick="showScreen('s-home')">← Terug</button>
+      <button class="back-btn" onclick="showScreen('s-home')"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Terug</button>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:8px">
       <img id="pin-photo" class="av-lg" style="margin-bottom:16px" src="">
@@ -160,7 +194,7 @@
   </div>
 
   <div id="s-kid" class="screen">
-    <button class="back-btn" onclick="logoutToHome()">← Uitloggen</button>
+    <button class="back-btn" onclick="logoutToHome()"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Uitloggen</button>
     <div class="card saldo-card state-healthy" id="saldo-card" style="margin-bottom:20px;padding:22px">
       <div class="rowb" style="margin-bottom:6px">
         <p style="font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#555">Saldo</p>
@@ -228,16 +262,16 @@
   </div>
 
   <div id="s-edit" class="screen">
-    <button class="back-btn" onclick="backFromEdit()">← Terug</button>
+    <button class="back-btn" onclick="backFromEdit()"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Terug</button>
     <p style="font-size:20px;font-weight:700;margin-bottom:20px">Uitgave aanpassen</p>
     <div class="card">
       <div class="fg"><label>Bedrag (€)</label><input type="number" id="e-amount" step="0.01" min="0.01"></div>
       <div class="fg"><label>Omschrijving</label><input type="text" id="e-desc"></div>
       <div class="fg"><label>Datum</label><input type="date" id="e-date"></div>
       <div id="e-err" class="alert-err hidden"></div>
-      <div class="row">
-        <button class="btn-primary" style="flex:1" onclick="saveEdit(this)">Opslaan</button>
-        <button class="btn-danger" style="flex:1" onclick="deleteExpense(this)">Verwijderen</button>
+      <button class="btn-primary" onclick="saveEdit(this)">Opslaan</button>
+      <div style="text-align:center;margin-top:6px">
+        <button class="btn-danger" onclick="deleteExpense(this)">Verwijder uitgave</button>
       </div>
     </div>
   </div>
@@ -248,7 +282,7 @@
         <p class="section-title" style="margin-bottom:6px">Pa &amp; Ma</p>
         <p style="font-size:26px;font-weight:800;letter-spacing:-0.5px">Overzicht</p>
       </div>
-      <button class="btn-ghost btn-sm" onclick="logoutToHome()">Uitloggen</button>
+      <button class="btn-secondary btn-sm" onclick="logoutToHome()" style="width:auto;padding:8px 14px;font-size:13px;border-radius:10px">Uitloggen</button>
     </div>
 
     <div id="parent-saldi" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:20px"></div>
@@ -265,32 +299,60 @@
     <div id="pt-bij" class="hidden"><div id="bij-list"></div></div>
 
     <div id="pt-settings" class="hidden">
-      <div class="card" style="margin-bottom:12px">
-        <p style="font-weight:700;margin-bottom:16px;font-size:16px">Profielfoto's</p>
-        <div id="photo-uploads" class="photo-upload-grid"></div>
-        <div id="photo-ok" class="alert-ok hidden" style="margin-top:12px">Foto opgeslagen</div>
+
+      <!-- Profielfoto's -->
+      <div class="settings-group">
+        <p class="settings-group-label">Profielfoto's</p>
+        <div class="settings-card">
+          <div id="photo-uploads" class="photo-upload-grid" style="padding:4px 0 8px"></div>
+          <div id="photo-ok" class="alert-ok hidden" style="margin-top:4px;margin-bottom:0">Foto opgeslagen</div>
+        </div>
       </div>
 
-      <div class="card" style="margin-bottom:12px">
-        <p style="font-weight:700;margin-bottom:16px;font-size:16px">Maandelijkse bijdragen</p>
-        <div id="bijdrage-settings"></div>
-        <button class="btn-ghost btn-sm" style="margin-top:6px" onclick="saveMonthlyAmounts(this)">Opslaan</button>
-        <div id="bij-ok" class="alert-ok hidden" style="margin-top:10px">Opgeslagen</div>
+      <!-- Bijdragen -->
+      <div class="settings-group">
+        <p class="settings-group-label">Maandelijkse bijdragen</p>
+        <div class="settings-card" id="bijdrage-settings"></div>
+        <div style="padding:0 4px">
+          <button class="btn-primary" onclick="saveMonthlyAmounts(this)" style="margin-top:10px">Bijdragen opslaan</button>
+          <div id="bij-ok" class="alert-ok hidden" style="margin-top:10px">Opgeslagen</div>
+        </div>
       </div>
 
-      <div class="card" style="margin-bottom:12px">
-        <p style="font-weight:700;margin-bottom:16px;font-size:16px">Pincodes</p>
-        <div id="pin-settings"></div>
-        <button class="btn-ghost btn-sm" style="margin-top:6px" onclick="savePins(this)">Opslaan</button>
-        <div id="pin-ok" class="alert-ok hidden" style="margin-top:10px">Opgeslagen</div>
+      <!-- Pincodes -->
+      <div class="settings-group">
+        <p class="settings-group-label">Pincodes wijzigen</p>
+        <div class="settings-card" id="pin-settings"></div>
+        <div style="padding:0 4px">
+          <button class="btn-primary" onclick="savePins(this)" style="margin-top:10px">Pincodes opslaan</button>
+          <div id="pin-ok" class="alert-ok hidden" style="margin-top:10px">Opgeslagen</div>
+        </div>
       </div>
 
-      <div class="card">
-        <p style="font-weight:700;margin-bottom:16px;font-size:16px">Budget waarschuwing</p>
-        <div class="fg"><label>Drempelwaarde (€)</label><input type="number" id="warn-threshold" min="0" step="5"></div>
-        <button class="btn-ghost btn-sm" onclick="saveThreshold(this)">Opslaan</button>
-        <div id="threshold-ok" class="alert-ok hidden" style="margin-top:10px">Opgeslagen</div>
+      <!-- Budget waarschuwing -->
+      <div class="settings-group">
+        <p class="settings-group-label">Budget waarschuwing</p>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div>
+              <p class="settings-row-title">Drempelwaarde</p>
+              <p class="settings-row-sub">Waarschuwing onder dit saldo</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:15px;color:#666">€</span>
+              <input type="number" id="warn-threshold" min="0" step="5"
+                style="width:72px;text-align:right;padding:8px 10px;font-size:16px;font-weight:500;
+                       background:#1e1e1e;border:1px solid #2a2a2a;border-radius:10px;color:#fff">
+            </div>
+          </div>
+        </div>
+        <div style="padding:0 4px">
+          <button class="btn-primary" onclick="saveThreshold(this)" style="margin-top:10px">Opslaan</button>
+          <div id="threshold-ok" class="alert-ok hidden" style="margin-top:10px">Opgeslagen</div>
+        </div>
       </div>
+
+      <div style="height:32px"></div>
     </div>
   </div>
 
@@ -298,9 +360,9 @@
   <!-- Crop scherm -->
   <div id="s-crop" class="screen">
     <div class="crop-header">
-      <button class="back-btn" style="padding:0" onclick="cancelCrop()">← Annuleren</button>
+      <button class="back-btn" style="padding:0" onclick="cancelCrop()"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Annuleren</button>
       <p style="font-size:16px;font-weight:700" id="crop-title">Foto bijsnijden</p>
-      <button class="btn-ghost btn-sm" id="crop-save-btn" onclick="confirmCrop()">Opslaan</button>
+      <button class="btn-secondary btn-sm" id="crop-save-btn" onclick="confirmCrop()" style="width:auto;padding:8px 16px;font-size:14px">Opslaan</button>
     </div>
     <div class="crop-viewport" id="crop-viewport">
       <img id="crop-img" draggable="false" src="">
@@ -1172,17 +1234,17 @@ function renderPendingList(){
         </div>
 
         <!-- Acties -->
-        <div style="display:flex;gap:8px">
-          <button class="btn-primary" style="flex:1;padding:13px"
-            onclick="approveExpense('${escapeAttr(e.id)}', this)">
-            ${isRetour ? 'Retour verwerken' : 'Betaald'} ✓
-          </button>
-          ${isRetour
-            ? `<button class="btn-danger" style="flex:0 0 auto;padding:13px 16px"
-                onclick="rejectReturn('${escapeAttr(e.id)}', this)">Weigeren</button>`
-            : `<button class="btn-ghost btn-sm" style="padding:13px 16px;border-radius:14px"
-                onclick="openEdit('${escapeAttr(e.id)}','parent')">Wijzig</button>`}
-        </div>
+        <button class="btn-primary" style="padding:13px"
+          onclick="approveExpense('${escapeAttr(e.id)}', this)">
+          ${isRetour ? 'Retour verwerken' : 'Betaald'} ✓
+        </button>
+        ${isRetour
+          ? `<div style="text-align:center;margin-top:4px">
+               <button class="btn-danger" onclick="rejectReturn('${escapeAttr(e.id)}', this)">Weigeren</button>
+             </div>`
+          : `<div style="text-align:center;margin-top:4px">
+               <button class="btn-ghost" onclick="openEdit('${escapeAttr(e.id)}','parent')">Wijzig</button>
+             </div>`}
       </div>
     `;
   }).join('');
@@ -1260,47 +1322,80 @@ function renderBijstortingen(){
 function renderParentSettings(){
   const kids = app.state.kids.filter(k => String(k.active) !== 'false' && String(k.active) !== '0');
 
+  // Profielfoto's
   document.getElementById('photo-uploads').innerHTML = [
-    ...kids.map(k => ({ id: k.kid_id, name: k.name })),
-    { id: 'parent', name: 'Pa & Ma' }
-  ].map(p => `
+    ...kids.map(k => ({ id: k.kid_id, name: k.name, accent: kidAccent(k.kid_id) })),
+    { id: 'parent', name: 'Pa & Ma', accent: null }
+  ].map(p => {
+    const border = p.accent ? p.accent.border : '#444';
+    const glow   = p.accent ? p.accent.glow   : 'transparent';
+    return `
     <div style="text-align:center">
-      <label class="photo-upload-label" id="photo-label-${escapeAttr(p.id)}" for="photo-input-${escapeAttr(p.id)}">
+      <label class="photo-upload-label" id="photo-label-${escapeAttr(p.id)}" for="photo-input-${escapeAttr(p.id)}"
+             style="border-color:${border};box-shadow:0 0 0 3px ${glow}">
         <img id="photo-img-${escapeAttr(p.id)}" src="${escapeAttr(getPhoto(p.id))}">
         <div class="edit-badge">✎</div>
       </label>
-      <input type="file" id="photo-input-${escapeAttr(p.id)}" accept="image/*" style="display:none" onchange="uploadPhoto('${escapeAttr(p.id)}', this)">
-      <p class="muted" style="font-size:12px;margin-top:6px">${escapeHtml(p.name)}</p>
-    </div>
-  `).join('');
+      <input type="file" id="photo-input-${escapeAttr(p.id)}" accept="image/*" style="display:none"
+             onchange="uploadPhoto('${escapeAttr(p.id)}', this)">
+      <p style="font-size:12px;color:#555;margin-top:7px;font-weight:500">${escapeHtml(p.name)}</p>
+    </div>`;
+  }).join('');
 
-  document.getElementById('bijdrage-settings').innerHTML = kids.map(k => `
-    <div class="fg">
-      <label>${escapeHtml(k.name)} (€/mnd)</label>
-      <input type="number" id="bij-${escapeAttr(k.kid_id)}" value="${escapeAttr(k.monthly_amount)}" min="0" step="5">
-    </div>
-  `).join('');
+  // Bijdragen — als settings-rows in een card
+  document.getElementById('bijdrage-settings').innerHTML = kids.map(k => {
+    const a = kidAccent(k.kid_id);
+    return `
+    <div class="settings-row">
+      <div class="row" style="gap:10px">
+        <img src="${escapeAttr(getPhoto(k.kid_id))}" class="av-sm"
+             style="border-color:${a.border};box-shadow:0 0 0 2px ${a.glow}">
+        <p class="settings-row-title">${escapeHtml(k.name)}</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:15px;color:#666">€</span>
+        <input type="number" id="bij-${escapeAttr(k.kid_id)}"
+               value="${escapeAttr(k.monthly_amount)}" min="0" step="5"
+               style="width:72px;text-align:right;padding:8px 10px;font-size:16px;font-weight:500;
+                      background:#1e1e1e;border:1px solid #2a2a2a;border-radius:10px;color:#fff">
+        <span style="font-size:13px;color:#555">/mnd</span>
+      </div>
+    </div>`;
+  }).join('');
 
-  document.getElementById('pin-settings').innerHTML = `
-    <div class="fg">
-      <label>Nieuwe ouderpin</label>
-      <input type="password" id="pin-parent-new" placeholder="Laat leeg om niet te wijzigen" maxlength="4" inputmode="numeric">
-    </div>
-    <div class="fg">
-      <label>Bevestig ouderpin</label>
-      <input type="password" id="pin-parent-confirm" placeholder="Herhaal nieuwe ouderpin" maxlength="4" inputmode="numeric">
-    </div>
-    ${kids.map(k => `
-      <div class="fg">
-        <label>Nieuwe pincode ${escapeHtml(k.name)}</label>
-        <input type="password" id="pin-${escapeAttr(k.kid_id)}-new" placeholder="Laat leeg om niet te wijzigen" maxlength="4" inputmode="numeric">
+  // Pincodes — per persoon als compacte blokken
+  document.getElementById('pin-settings').innerHTML = [
+    { id: 'parent', name: 'Pa & Ma', accent: null }
+  ].concat(kids.map(k => ({ id: k.kid_id, name: k.name, accent: kidAccent(k.kid_id) }))).map(p => {
+    const border = p.accent ? p.accent.border : '#444';
+    const glow   = p.accent ? p.accent.glow   : 'transparent';
+    const prefix = p.id === 'parent' ? 'pin-parent' : 'pin-' + p.id;
+    return `
+    <div class="settings-pin-row">
+      <div class="row" style="gap:10px;margin-bottom:12px">
+        <img src="${escapeAttr(getPhoto(p.id))}" class="av-sm"
+             style="border-color:${border};box-shadow:0 0 0 2px ${glow}">
+        <p style="font-size:14px;font-weight:500;color:#e0e0e0">${escapeHtml(p.name)}</p>
       </div>
-      <div class="fg">
-        <label>Bevestig pincode ${escapeHtml(k.name)}</label>
-        <input type="password" id="pin-${escapeAttr(k.kid_id)}-confirm" placeholder="Herhaal nieuwe pincode" maxlength="4" inputmode="numeric">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <p class="settings-pin-label">Nieuwe pin</p>
+          <input type="password" id="${escapeAttr(prefix)}-new"
+                 placeholder="••••" maxlength="4" inputmode="numeric"
+                 style="width:100%;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:10px;
+                        padding:10px 12px;font-size:18px;letter-spacing:4px;color:#fff;text-align:center">
+        </div>
+        <div>
+          <p class="settings-pin-label">Bevestig</p>
+          <input type="password" id="${escapeAttr(prefix)}-confirm"
+                 placeholder="••••" maxlength="4" inputmode="numeric"
+                 style="width:100%;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:10px;
+                        padding:10px 12px;font-size:18px;letter-spacing:4px;color:#fff;text-align:center">
+        </div>
       </div>
-    `).join('')}
-  `;
+    </div>`;
+  }).join('');
+
   document.getElementById('warn-threshold').value = settingValue('warning_threshold', 75);
   document.getElementById('photo-ok').classList.add('hidden');
   document.getElementById('bij-ok').classList.add('hidden');
