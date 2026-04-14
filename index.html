@@ -375,6 +375,21 @@ function detect(desc=''){
 }
 function euro(v){ return Number(v || 0).toFixed(2); }
 
+// ── KID ACCENTKLEUREN ────────────────────────────────────────
+// Gebaseerd op positie in de kids-array — stabiel, ongeacht kid_id
+const KID_ACCENTS = [
+  { border:'#1a5c38', glow:'rgba(26,92,56,.22)',   text:'#2d9954', bg:'rgba(26,92,56,.10)'   },  // Thijs  — British Racing Green
+  { border:'#e0218a', glow:'rgba(224,33,138,.20)', text:'#f06cb0', bg:'rgba(224,33,138,.09)' },  // Emilie — Barbie roze
+  { border:'#ff6b35', glow:'rgba(255,107,53,.20)', text:'#ff8c5a', bg:'rgba(255,107,53,.09)' },  // Floris — Papaya oranje
+  { border:'#a855f7', glow:'rgba(168,85,247,.18)', text:'#c084fc', bg:'rgba(168,85,247,.08)' },  // extra  — paars fallback
+];
+
+function kidAccent(kidId){
+  const kids = (app.state?.kids || []).filter(k => String(k.active) !== 'false' && String(k.active) !== '0');
+  const idx  = kids.findIndex(k => String(k.kid_id) === String(kidId));
+  return KID_ACCENTS[Math.max(0, idx) % KID_ACCENTS.length];
+}
+
 function countUpValue(el, from, to, duration){
   const start = performance.now();
   const diff  = to - from;
@@ -497,20 +512,34 @@ function renderAll(){ renderHome(); if(app.currentKidId) renderKidScreen(); rend
 function renderHome(){
   document.getElementById('pama-home-photo').src = getPhoto('parent');
   const kids = app.state.kids.filter(k => String(k.active) !== 'false' && String(k.active) !== '0');
-  document.getElementById('kid-cards').innerHTML = kids.map(k => `
-    <div class="kid-card" onclick="goKid('${escapeAttr(k.kid_id)}')">
+  document.getElementById('kid-cards').innerHTML = kids.map(k => {
+    const a       = kidAccent(k.kid_id);
+    const summary = (app.state.summary_by_kid || {})[String(k.kid_id)] || {};
+    const balance = Number(summary.balance || 0);
+    const pending = Number(summary.pending_count || 0);
+    return `
+    <div class="kid-card" onclick="goKid('${escapeAttr(k.kid_id)}')"
+         style="border-color:${a.border}22;background:linear-gradient(135deg,#161616 60%,${a.bg})">
       <div class="rowb">
         <div class="row" style="gap:16px">
-          <img class="av" src="${escapeAttr(getPhoto(k.kid_id))}">
+          <img class="av" src="${escapeAttr(getPhoto(k.kid_id))}"
+               style="border-color:${a.border};box-shadow:0 0 0 3px ${a.glow}">
           <div>
-            <p style="font-size:18px;font-weight:700">${escapeHtml(k.name)}</p>
-            <p class="muted" style="font-size:14px;margin-top:3px">Bekijk saldo en dien uitgaven in</p>
+            <p style="font-size:18px;font-weight:600">${escapeHtml(k.name)}</p>
+            <p style="font-size:22px;font-weight:600;letter-spacing:-1px;color:${a.text};margin-top:2px;line-height:1">
+              €${euro(balance)}
+            </p>
+            ${pending > 0
+              ? `<p style="font-size:12px;color:#fb923c;margin-top:3px">${pending} wacht op goedkeuring</p>`
+              : `<p style="font-size:12px;color:#555;margin-top:3px">alles goedgekeurd</p>`}
           </div>
         </div>
-        <div class="muted">›</div>
+        <svg width="7" height="13" viewBox="0 0 7 13" fill="none" style="flex-shrink:0;opacity:.35">
+          <path d="M1 1l5 5.5L1 12" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 
@@ -768,7 +797,11 @@ function goKid(kidId){
   if(!kid) return;
   app.pinTarget = {role:'kid', kidId};
   resetPin();
-  document.getElementById('pin-photo').src = getPhoto(kidId);
+  const photoEl = document.getElementById('pin-photo');
+  photoEl.src = getPhoto(kidId);
+  const a = kidAccent(kidId);
+  photoEl.style.borderColor  = a.border;
+  photoEl.style.boxShadow    = '0 0 0 4px ' + a.glow;
   document.getElementById('pin-title').textContent = kid.name;
   document.getElementById('pin-sub').textContent = 'Voer je pincode in';
   showScreen('s-pin');
@@ -869,7 +902,14 @@ function renderKidScreen(){
   const expenses = getExpensesForKid(kid.kid_id).sort((a,b) => String(b.date).localeCompare(String(a.date)));
   const threshold = Number(settingValue('warning_threshold', 75));
 
-  document.getElementById('kid-photo').src = getPhoto(kid.kid_id);
+  const kidAv = document.getElementById('kid-photo');
+  kidAv.src = getPhoto(kid.kid_id);
+  const accent = kidAccent(kid.kid_id);
+  kidAv.style.borderColor = accent.border;
+  kidAv.style.boxShadow   = '0 0 0 3px ' + accent.glow;
+  // Accentkleur op het €-teken in saldo-kaart
+  const currEl = document.querySelector('#kid-saldo-display .saldo-currency');
+  if(currEl) currEl.style.color = accent.text;
   document.getElementById('kid-next-bij').textContent = 'Volgende bijstorting: ' + nextMonthLabel();
   document.getElementById('kid-bijdrage').textContent = euro(kid.monthly_amount);
   document.getElementById('kid-open-count').textContent = String(summary.pending_count || 0);
@@ -1056,15 +1096,17 @@ function renderParent(){
     const summary = app.state.summary_by_kid[String(k.kid_id)] || {};
     const balance = Number(summary.balance || 0);
     const pending = Number(summary.pending_total || 0);
-    const warnColor = balance < 0 ? '#f87171' : balance < threshold ? '#fb923c' : '#fff';
+    const a       = kidAccent(k.kid_id);
+    const balColor = balance < 0 ? '#f87171' : balance < threshold ? '#fb923c' : '#fff';
     return `
       <div class="metric" style="padding:14px 10px">
-        <img src="${escapeAttr(getPhoto(k.kid_id))}" class="av-sm" style="margin:0 auto 8px">
-        <p style="font-size:14px;font-weight:700">${escapeHtml(k.name)}</p>
-        <p style="font-size:18px;font-weight:800;margin-top:4px;color:${warnColor}">€${euro(balance)}</p>
+        <img src="${escapeAttr(getPhoto(k.kid_id))}" class="av-sm"
+             style="margin:0 auto 8px;border-color:${a.border};box-shadow:0 0 0 2px ${a.glow}">
+        <p style="font-size:13px;font-weight:600">${escapeHtml(k.name)}</p>
+        <p style="font-size:17px;font-weight:600;margin-top:3px;color:${balColor};letter-spacing:-.5px">€${euro(balance)}</p>
         ${pending > 0
           ? `<p style="color:#fb923c;font-size:11px;margin-top:3px">€${euro(pending)} open</p>`
-          : `<p style="color:#4ade80;font-size:11px;margin-top:3px">betaald</p>`}
+          : `<p style="color:#4ade80;font-size:11px;margin-top:3px">alles betaald</p>`}
       </div>
     `;
   }).join('');
