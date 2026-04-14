@@ -156,7 +156,7 @@
           <p class="section-title" style="margin-bottom:6px">Kleedgeld</p>
           <p style="font-size:26px;font-weight:800;letter-spacing:-0.5px">Wie ben jij?</p>
         </div>
-        <button class="btn-secondary btn-sm" onclick="reloadApp()" style="width:auto;padding:8px 12px;font-size:15px;border-radius:10px;color:#666;background:transparent;border:none">↺</button>
+        <button onclick="reloadApp()" style="background:none;border:none;color:#555;font-size:20px;cursor:pointer;padding:4px 8px;-webkit-tap-highlight-color:transparent;transition:color .15s" onmouseenter="this.style.color='#fff'" onmouseleave="this.style.color='#555'">↺</button>
       </div>
     </div>
 
@@ -1279,8 +1279,8 @@ function renderAllList(){
               ${isRetour ? '+' : ''}€${euro(e.amount)}</p>
             <div style="margin-top:6px">
               ${isPaid
-                ? `<button class="btn-danger btn-sm" style="font-size:11px;padding:5px 9px;border-radius:7px;opacity:.6" onclick="parentDelete('${escapeAttr(e.id)}', this)">Verwijder</button>`
-                : `<button class="btn-ghost btn-sm" style="font-size:11px;padding:5px 9px;border-radius:7px;opacity:.7" onclick="openEdit('${escapeAttr(e.id)}','parent')">Wijzig</button>`}
+                ? `<button class="btn-danger" style="font-size:12px;padding:4px 0" onclick="parentDelete('${escapeAttr(e.id)}', this)">Verwijder</button>`
+                : `<button class="btn-ghost" style="font-size:12px;padding:4px 0" onclick="openEdit('${escapeAttr(e.id)}','parent')">Wijzig</button>`}
             </div>
           </div>
         </div>
