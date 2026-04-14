@@ -9,8 +9,14 @@
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
     html,body{background:#0a0a0a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
     body{padding:env(safe-area-inset-top,20px) 16px env(safe-area-inset-bottom,34px)}
-    .screen{display:none;min-height:100vh}
+    .screen{display:none;min-height:100vh;opacity:0}
     .screen.active{display:block}
+    .screen.enter{animation:screenIn .24s cubic-bezier(.22,.68,0,1.05) forwards}
+    .screen.enter-back{animation:screenInBack .24s cubic-bezier(.22,.68,0,1.05) forwards}
+    .screen.enter-fade{animation:screenFade .2s ease forwards}
+    @keyframes screenIn{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes screenInBack{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes screenFade{from{opacity:0}to{opacity:1}}
     .row{display:flex;gap:10px;align-items:center}
     .rowb{display:flex;justify-content:space-between;align-items:center;gap:12px}
     .card{background:#161616;border:1px solid #2a2a2a;border-radius:18px;padding:18px;margin-bottom:14px}
@@ -456,9 +462,34 @@ async function loadApp(){
   }
 }
 async function reloadApp(){ await loadApp(); }
+// Schermvolgorde bepaalt richting: voorwaarts = van rechts, terug = van links
+const SCREEN_ORDER = ['s-home','s-pin','s-kid','s-edit','s-parent','s-crop','s-success'];
+// Schermen met fade-only (geen verschuiving)
+const SCREEN_FADE = new Set(['s-loading','s-success']);
+
+let _currentScreen = 's-loading';
+
 function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  const prev = _currentScreen;
+  _currentScreen = id;
+
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active','enter','enter-back','enter-fade');
+  });
+
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.classList.add('active');
+
+  if(SCREEN_FADE.has(id) || SCREEN_FADE.has(prev)){
+    el.classList.add('enter-fade');
+  } else {
+    const prevIdx = SCREEN_ORDER.indexOf(prev);
+    const nextIdx = SCREEN_ORDER.indexOf(id);
+    // Terug-navigatie (lager in de hiërarchie) → van links
+    el.classList.add(nextIdx < prevIdx ? 'enter-back' : 'enter');
+  }
+
   window.scrollTo(0,0);
 }
 function renderAll(){ renderHome(); if(app.currentKidId) renderKidScreen(); renderParent(); }
@@ -504,6 +535,7 @@ function showSuccess(title, desc, returnScreen){
   document.getElementById('success-desc').textContent = desc || '';
   app.successReturnScreen = returnScreen || 's-home';
   showScreen('s-success');
+
 }
 function afterSuccess(){
   if(app.successReturnScreen === 's-parent'){
@@ -818,8 +850,17 @@ async function validatePin(){
 function kidTab(tab, btn){
   document.querySelectorAll('#s-kid .tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('kt-history').classList.toggle('hidden', tab !== 'history');
-  document.getElementById('kt-add').classList.toggle('hidden', tab !== 'add');
+  ['kt-history','kt-add'].forEach(id => {
+    const el = document.getElementById(id);
+    const show = (id === 'kt-history') ? tab === 'history' : tab === 'add';
+    if(show){
+      el.classList.remove('hidden');
+      el.style.animation = 'screenFade .18s ease forwards';
+      setTimeout(() => { if(el) el.style.animation = ''; }, 200);
+    } else {
+      el.classList.add('hidden');
+    }
+  });
 }
 function renderKidScreen(){
   const kid = getKidById(app.currentKidId);
@@ -1304,10 +1345,17 @@ async function saveThreshold(btn){
 function parentTab(tab, btn){
   document.querySelectorAll('#s-parent .tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('pt-pending').classList.toggle('hidden', tab !== 'pending');
-  document.getElementById('pt-all').classList.toggle('hidden', tab !== 'all');
-  document.getElementById('pt-bij').classList.toggle('hidden', tab !== 'bij');
-  document.getElementById('pt-settings').classList.toggle('hidden', tab !== 'settings');
+  ['pt-pending','pt-all','pt-bij','pt-settings'].forEach(id => {
+    const key = id.replace('pt-','');
+    const el  = document.getElementById(id);
+    if(tab === key){
+      el.classList.remove('hidden');
+      el.style.animation = 'screenFade .18s ease forwards';
+      setTimeout(() => { if(el) el.style.animation = ''; }, 200);
+    } else {
+      el.classList.add('hidden');
+    }
+  });
 }
 function logoutToHome(){ app.currentKidId = null; app.editId = null; app.editFrom = null; showScreen('s-home'); }
 function escapeHtml(str){ return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
@@ -1347,7 +1395,12 @@ function afterConfetti(){
   resetAddExpenseForm();
   renderKidScreen();
   showScreen('s-kid');
-  switchKidToAddTab();
+  // Ga naar overzicht zodat nieuwe transactie zichtbaar is
+  const tabs = document.querySelectorAll('#s-kid .tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  if(tabs[0]) tabs[0].classList.add('active');
+  document.getElementById('kt-history').classList.remove('hidden');
+  document.getElementById('kt-add').classList.add('hidden');
 }
 
 buildPinGrid();
