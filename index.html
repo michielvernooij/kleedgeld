@@ -236,9 +236,9 @@
           <p style="font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#555;margin-bottom:12px">Bedrag</p>
           <div style="display:flex;align-items:baseline;justify-content:center;gap:4px">
             <span style="font-size:28px;font-weight:400;color:#555">€</span>
-            <input type="number" id="a-amount" placeholder="0.00" step="0.01" min="0.01"
+            <input type="text" inputmode="decimal" id="a-amount" placeholder="0.00"
               style="width:160px;background:transparent;border:none;border-bottom:1.5px solid #333;border-radius:0;
-                     font-size:42px;font-weight:600;letter-spacing:-1px;color:#fff;text-align:center;padding:0 0 4px;outline:none"
+                     font-size:42px;font-weight:600;letter-spacing:-1px;color:#fff;text-align:left;padding:0 0 4px;outline:none"
               oninput="this.style.borderBottomColor=this.value?'#fff':'#333'">
           </div>
         </div>
@@ -1142,7 +1142,7 @@ function renderKidExpenseRow(e){
 }
 async function submitExpense(btn){
   return withLock('submitExpense', async () => {
-    const amount = parseFloat(document.getElementById('a-amount').value);
+    const amount = parseFloat(document.getElementById('a-amount').value.replace(',','.'));
     const description = document.getElementById('a-desc').value.trim();
     const date = document.getElementById('a-date').value;
     const errEl = document.getElementById('a-err');
@@ -1363,32 +1363,112 @@ function renderAllList(){
   }).join('');
 }
 function renderBijstortingen(){
-  const kids = app.state.kids.filter(k => String(k.active) !== 'false' && String(k.active) !== '0');
+  const kids      = app.state.kids.filter(k => String(k.active) !== 'false' && String(k.active) !== '0');
+  const expenses  = app.state.expenses || [];
   const startDate = settingValue('start_date', '2026-04-01');
-  const start = new Date(startDate + 'T00:00:00');
-  const now = new Date();
-  const el = document.getElementById('bij-list');
+  const start     = new Date(startDate + 'T00:00:00');
+  const now       = new Date();
+  const el        = document.getElementById('bij-list');
+  const MONTHS_NL = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
 
-  let year = start.getFullYear();
-  let month = start.getMonth();
-  let html = `<p class="muted" style="font-size:13px;margin-bottom:14px">Bijstortingen vanaf ${escapeHtml(startDate)} · volgende: <span style="color:#fff">${escapeHtml(nextMonthLabel())}</span></p>`;
-  while(year < now.getFullYear() || (year === now.getFullYear() && month <= now.getMonth())){
-    const label = new Date(year, month, 1).toLocaleDateString('nl-NL', {day:'numeric', month:'long', year:'numeric'});
-    html += `
-      <div class="card" style="padding:10px 14px">
-        <div class="rowb" style="flex-wrap:wrap">
-          <span class="muted" style="font-size:13px">${escapeHtml(label)}</span>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            ${kids.map(k => `<span style="color:#4ade80;font-size:13px;font-weight:700">+€${euro(k.monthly_amount)} ${escapeHtml(k.name)}</span>`).join('')}
-          </div>
-        </div>
-      </div>
-    `;
-    month++;
-    if(month > 11){ month = 0; year++; }
+  // Bouw een lijst van maanden van nieuw naar oud
+  const months = [];
+  let y = now.getFullYear(), m = now.getMonth();
+  while(y > start.getFullYear() || (y === start.getFullYear() && m >= start.getMonth())){
+    months.push({ y, m });
+    m--; if(m < 0){ m = 11; y--; }
   }
+
+  let html = `<p style="font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+    color:#555;margin-bottom:16px">Volgende bijstorting: <span style="color:#fff">${escapeHtml(nextMonthLabel())}</span></p>`;
+
+  months.forEach(({ y, m }) => {
+    const monthKey  = y + '-' + String(m+1).padStart(2,'0'); // '2026-04'
+    const monthLabel = MONTHS_NL[m] + ' ' + y;
+
+    // Per kind: uitgaven en storting in deze maand
+    const kidBlocks = kids.map(k => {
+      const a         = kidAccent(k.kid_id);
+      const deposit   = toEuro(k.monthly_amount);
+
+      // Goedgekeurde uitgaven in deze maand
+      const kidExp = expenses.filter(e => {
+        if(String(e.kid_id) !== String(k.kid_id)) return false;
+        if(String(e.status) !== 'approved') return false;
+        if(String(e.type) === 'return') return false;
+        return String(e.date || '').startsWith(monthKey);
+      });
+      // Goedgekeurde retouren in deze maand
+      const kidRet = expenses.filter(e => {
+        if(String(e.kid_id) !== String(k.kid_id)) return false;
+        if(String(e.status) !== 'approved') return false;
+        if(String(e.type) !== 'return') return false;
+        return String(e.date || '').startsWith(monthKey);
+      });
+
+      const totalExp = kidExp.reduce((s,e) => s + Number(e.amount||0), 0);
+      const totalRet = kidRet.reduce((s,e) => s + Number(e.amount||0), 0);
+      const netto    = deposit - totalExp + totalRet;
+      const netColor = netto >= 0 ? '#4ade80' : '#f87171';
+
+      // Individuele transactie-regels
+      const rows = kidExp.map(e => `
+        <div style="display:flex;justify-content:space-between;padding:5px 0;
+                    border-bottom:.5px solid #1a1a1a">
+          <p style="font-size:12px;color:#555;white-space:nowrap;overflow:hidden;
+                    text-overflow:ellipsis;max-width:200px">${escapeHtml(e.description)}</p>
+          <p style="font-size:12px;color:#888;flex-shrink:0;margin-left:8px">−€${euro(e.amount)}</p>
+        </div>`).join('') + kidRet.map(e => `
+        <div style="display:flex;justify-content:space-between;padding:5px 0;
+                    border-bottom:.5px solid #1a1a1a">
+          <p style="font-size:12px;color:#555">↩ ${escapeHtml(e.description)}</p>
+          <p style="font-size:12px;color:#fb923c;flex-shrink:0;margin-left:8px">+€${euro(e.amount)}</p>
+        </div>`).join('');
+
+      return `
+        <div style="padding:14px 16px;border-bottom:.5px solid #1e1e1e">
+          <!-- Kid header -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${kidExp.length || kidRet.length ? '10px' : '0'}">
+            <div style="display:flex;align-items:center;gap:10px">
+              <img src="${escapeAttr(getPhoto(k.kid_id))}" class="av-sm"
+                   style="border-color:${a.border};box-shadow:0 0 0 2px ${a.glow}">
+              <div>
+                <p style="font-size:14px;font-weight:500;color:#e0e0e0">${escapeHtml(k.name)}</p>
+                <div style="display:flex;gap:10px;margin-top:2px">
+                  <p style="font-size:11px;color:#4ade80">+€${euro(deposit)}</p>
+                  ${totalExp > 0 ? `<p style="font-size:11px;color:#888">−€${euro(totalExp)}</p>` : ''}
+                  ${totalRet > 0 ? `<p style="font-size:11px;color:#fb923c">+€${euro(totalRet)} retour</p>` : ''}
+                </div>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <p style="font-size:11px;color:#555;margin-bottom:2px">netto</p>
+              <p style="font-size:15px;font-weight:600;color:${netColor};letter-spacing:-.3px">
+                ${netto >= 0 ? '+' : ''}€${euro(Math.abs(netto))}
+              </p>
+            </div>
+          </div>
+          <!-- Transactie-regels -->
+          ${kidExp.length || kidRet.length ? `<div style="padding-left:44px">${rows}</div>` : ''}
+        </div>`;
+    }).join('');
+
+    html += `
+      <div style="background:#161616;border:.5px solid #242424;border-radius:18px;
+                  overflow:hidden;margin-bottom:12px">
+        <!-- Maand-header -->
+        <div style="padding:12px 16px;border-bottom:.5px solid #1e1e1e">
+          <p style="font-size:13px;font-weight:600;color:#e0e0e0;text-transform:capitalize">
+            ${escapeHtml(monthLabel)}</p>
+        </div>
+        ${kidBlocks}
+      </div>`;
+  });
+
   el.innerHTML = html;
 }
+
+function toEuro(v){ return Number(v||0); }
 function renderParentSettings(){
   const kids = app.state.kids.filter(k => String(k.active) !== 'false' && String(k.active) !== '0');
 
