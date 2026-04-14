@@ -573,6 +573,10 @@ function showScreen(id){
   }
 
   window.scrollTo(0,0);
+  // Subtiel tik-geluid bij schermwissel (niet bij laden of succes)
+  if(id !== 's-loading' && id !== 's-success'){
+    soundTick();
+  }
 }
 function renderAll(){ renderHome(); if(app.currentKidId) renderKidScreen(); renderParent(); }
 
@@ -773,11 +777,17 @@ async function confirmCrop(){
 let audioCtx = null;
 function getAudioCtx(){
   if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  // Chrome vereist resume() na gebruikersinteractie
+  if(audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
 }
 function playTone(freq, duration, type='sine', vol=0.18, delay=0){
   try{
     const ctx  = getAudioCtx();
+    if(ctx.state === 'suspended'){
+      ctx.resume().then(() => playTone(freq, duration, type, vol, delay));
+      return;
+    }
     const osc  = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
@@ -810,6 +820,36 @@ function soundApproved(){
   playTone(523, 0.09, 'sine', 0.16);
   playTone(659, 0.09, 'sine', 0.16, 0.09);
   playTone(784, 0.14, 'sine', 0.18, 0.18);
+}
+function soundWhoosh(){
+  // Stijgende ruis-sweep: filterd noise van laag naar hoog
+  try{
+    const ctx  = getAudioCtx();
+    if(ctx.state === 'suspended'){ ctx.resume().then(soundWhoosh); return; }
+    const buf  = ctx.createBuffer(1, ctx.sampleRate * 0.28, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for(let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
+    const src    = ctx.createBufferSource();
+    src.buffer   = buf;
+    const filter = ctx.createBiquadFilter();
+    filter.type  = 'bandpass';
+    filter.frequency.setValueAtTime(200, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(2400, ctx.currentTime + 0.22);
+    filter.Q.value = 1.2;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.06);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(ctx.currentTime);
+    src.stop(ctx.currentTime + 0.30);
+  }catch(e){}
+}
+function soundTick(){
+  // Heel zacht neutraal tik-geluid voor schermwissel
+  playTone(880, 0.03, 'sine', 0.055);
 }
 
 // ── PIN GRID ─────────────────────────────────────────────────
@@ -1083,6 +1123,7 @@ async function submitExpense(btn){
       // Reset formulier VOOR renderAll zodat knop schoon is als scherm terugkomt
       resetAddExpenseForm();
       renderAll();
+      soundWhoosh();
       showSuccess('Ingediend!', 'De uitgave is verstuurd naar papa’s of mama’s telefoon.', 's-kid');
     }catch(err){
       errEl.textContent = err.message;
