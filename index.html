@@ -45,11 +45,23 @@
     .center{text-align:center}
     .hidden{display:none}
     .loading{padding:40px 0;text-align:center;color:#777}
-    .pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:280px;margin:0 auto}
-    .pin-btn{padding:20px;font-size:24px;text-align:center;background:#111;border:1px solid #222;border-radius:16px;cursor:pointer;color:#fff}
-    .pin-display{display:flex;gap:12px;justify-content:center;margin:24px 0 22px}
-    .pin-char{width:52px;height:62px;border-radius:14px;border:1px solid #333;background:#111;display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff}
-    .pin-char.filled{background:#1e1e1e;border-color:#555}
+    .pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:300px;margin:0 auto}
+    .pin-btn{padding:0;width:100%;aspect-ratio:1;font-size:26px;font-weight:300;text-align:center;background:rgba(255,255,255,.07);border:none;border-radius:50%;cursor:pointer;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:background .15s;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+    .pin-btn:active{background:rgba(255,255,255,.18)}
+    .pin-btn.pressed{animation:pinPress .18s cubic-bezier(.36,.07,.19,.97)}
+    .pin-btn .pin-sub{font-size:9px;letter-spacing:.1em;color:#555;margin-top:3px;line-height:1;text-transform:uppercase}
+    .pin-btn.del-btn{background:transparent;font-size:22px}
+    .pin-btn.del-btn.pressed{background:rgba(255,100,50,.12);color:#fb923c}
+    @keyframes pinPress{0%{transform:scale(1)}40%{transform:scale(.88)}100%{transform:scale(1)}}
+    .pin-display{display:flex;gap:20px;justify-content:center;margin:32px 0 28px}
+    .pin-dot{width:16px;height:16px;border-radius:50%;border:1.5px solid #3a3a3a;background:transparent;transition:background .12s,border-color .12s,transform .12s}
+    .pin-dot.filled{background:#fff;border-color:#fff;transform:scale(1.08)}
+    .pin-dot.state-ok{background:#4ade80;border-color:#4ade80;transform:scale(1.2);transition:all .15s}
+    .pin-dot.state-err{background:#f87171;border-color:#f87171}
+    @keyframes pinShake{0%,100%{transform:translateX(0)}15%{transform:translateX(-9px)}35%{transform:translateX(9px)}55%{transform:translateX(-6px)}75%{transform:translateX(6px)}90%{transform:translateX(-3px)}}
+    .pin-display.shake{animation:pinShake .4s cubic-bezier(.36,.07,.19,.97)}
+    @keyframes pinBounce{0%{transform:scale(1)}45%{transform:scale(1.28)}100%{transform:scale(1)}}
+    .pin-dot.bounce{animation:pinBounce .22s ease}
     .section-title{color:#555;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:12px}
   
     .btn-primary[disabled],.btn-ghost[disabled],.btn-danger[disabled]{opacity:.55;cursor:not-allowed}
@@ -62,7 +74,6 @@
     .photo-upload-label .edit-badge{position:absolute;bottom:0;right:0;background:#fff;color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
     .photo-upload-label.busy{opacity:.6;pointer-events:none}
     @keyframes popIn{0%{transform:scale(0)}100%{transform:scale(1)}}
-
     /* Crop scherm */
     #s-crop{background:#0a0a0a;flex-direction:column;align-items:center;padding:0}
     #s-crop.active{display:flex;min-height:100vh}
@@ -74,8 +85,7 @@
     .crop-controls{width:100%;max-width:420px;margin-top:20px;padding:0 4px}
     .crop-slider-label{font-size:12px;color:#666;letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:10px}
     input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:#333;outline:none;padding:0;border:none}
-    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#fff;cursor:pointer;margin-top:-10px}
-    input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#fff;cursor:pointer}
     .crop-preview-wrap{display:flex;gap:12px;align-items:center;margin-top:16px}
     .crop-preview{width:56px;height:56px;border-radius:50%;overflow:hidden;border:2px solid #333;background:#111;flex-shrink:0}
     #crop-preview-canvas{width:56px;height:56px}
@@ -121,10 +131,10 @@
       <p style="font-size:20px;font-weight:700" id="pin-title"></p>
       <p class="muted" style="font-size:14px;margin-top:6px" id="pin-sub"></p>
     </div>
-    <div class="pin-display">
-      <div class="pin-char" id="pc0">_</div><div class="pin-char" id="pc1">_</div><div class="pin-char" id="pc2">_</div><div class="pin-char" id="pc3">_</div>
+    <div class="pin-display" id="pin-display">
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div><div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
     </div>
-    <div id="pin-err" class="alert-err hidden" style="max-width:320px;margin:0 auto 14px"></div>
+    <div id="pin-err" class="alert-err hidden" style="max-width:300px;margin:0 auto 14px;font-size:13px;text-align:center"></div>
     <div class="pin-grid" id="pin-grid"></div>
   </div>
 
@@ -242,22 +252,18 @@
       <p style="font-size:16px;font-weight:700" id="crop-title">Foto bijsnijden</p>
       <button class="btn-ghost btn-sm" id="crop-save-btn" onclick="confirmCrop()">Opslaan</button>
     </div>
-
     <div class="crop-viewport" id="crop-viewport">
       <img id="crop-img" draggable="false" src="">
       <div class="crop-overlay"></div>
     </div>
-
     <div class="crop-controls">
       <p class="crop-slider-label">Zoom</p>
       <input type="range" id="crop-zoom" min="1" max="4" step="0.01" value="1" oninput="cropUpdate()">
-
       <div class="crop-preview-wrap">
         <div class="crop-preview"><canvas id="crop-preview-canvas" width="112" height="112"></canvas></div>
         <p class="muted" style="font-size:13px">Voorbeeld · Sleep om te positioneren</p>
       </div>
     </div>
-
     <div id="crop-uploading" class="hidden" style="margin-top:20px;color:#666;font-size:14px;text-align:center">Uploaden…</div>
     <div id="crop-err" class="alert-err hidden" style="margin-top:14px;width:100%;max-width:420px"></div>
   </div>
@@ -440,48 +446,23 @@ function afterSuccess(){
 
 
 // ── FOTO CROP & UPLOAD ──────────────────────────────────────
-
 const crop = {
-  targetId: null,
-  filename: null,
-  img: null,
-  naturalW: 0,
-  naturalH: 0,
-  // huidige staat
-  scale: 1,       // zoom factor (1 = fit)
-  minScale: 1,
-  offsetX: 0,     // pixel offset van img binnen viewport (bij scale=1)
-  offsetY: 0,
-  vpSize: 0,      // breedte/hoogte van de vierkante viewport in CSS px
-  // drag
-  dragging: false,
-  dragStartX: 0,
-  dragStartY: 0,
-  dragStartOX: 0,
-  dragStartOY: 0,
-  // pinch
-  pinching: false,
-  pinchDist0: 0,
-  pinchScale0: 1
+  targetId:null, filename:null, img:null, naturalW:0, naturalH:0,
+  scale:1, minScale:1, offsetX:0, offsetY:0, vpSize:0,
+  dragging:false, dragStartX:0, dragStartY:0, dragStartOX:0, dragStartOY:0,
+  pinching:false, pinchDist0:0, pinchScale0:1
 };
 
 function uploadPhoto(targetId, input){
   const file = input.files && input.files[0];
   input.value = '';
   if(!file) return;
-
   crop.targetId = targetId;
   crop.filename = file.name || (targetId + '.jpg');
-
   const reader = new FileReader();
   reader.onload = e => {
     const img = new Image();
-    img.onload = () => {
-      crop.img     = img;
-      crop.naturalW = img.naturalWidth;
-      crop.naturalH = img.naturalHeight;
-      openCropScreen(targetId);
-    };
+    img.onload = () => { crop.img=img; crop.naturalW=img.naturalWidth; crop.naturalH=img.naturalHeight; openCropScreen(targetId); };
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
@@ -493,216 +474,181 @@ function openCropScreen(targetId){
   document.getElementById('crop-err').classList.add('hidden');
   document.getElementById('crop-uploading').classList.add('hidden');
   document.getElementById('crop-save-btn').disabled = false;
-
-  // Toon afbeelding
-  const imgEl = document.getElementById('crop-img');
-  imgEl.src = crop.img.src;
-
+  document.getElementById('crop-img').src = crop.img.src;
   showScreen('s-crop');
-
-  // Bereken viewport grootte (na render)
-  requestAnimationFrame(() => {
-    const vp = document.getElementById('crop-viewport');
-    crop.vpSize = vp.offsetWidth;
-    cropReset();
-    cropBindEvents();
-  });
+  requestAnimationFrame(() => { crop.vpSize = document.getElementById('crop-viewport').offsetWidth; cropReset(); cropBindEvents(); });
 }
 
 function cropReset(){
-  // Schaal zodat de kortste kant de viewport vult
-  const fitScaleW = crop.vpSize / crop.naturalW;
-  const fitScaleH = crop.vpSize / crop.naturalH;
-  crop.minScale   = Math.max(fitScaleW, fitScaleH);
-  crop.scale      = crop.minScale;
-
-  // Centreer
-  crop.offsetX = (crop.vpSize - crop.naturalW * crop.scale) / 2;
-  crop.offsetY = (crop.vpSize - crop.naturalH * crop.scale) / 2;
-
-  const slider = document.getElementById('crop-zoom');
-  slider.min   = 1;
-  slider.max   = 4;
-  slider.value = 1;
-
+  crop.minScale = Math.max(crop.vpSize/crop.naturalW, crop.vpSize/crop.naturalH);
+  crop.scale    = crop.minScale;
+  crop.offsetX  = (crop.vpSize - crop.naturalW * crop.scale) / 2;
+  crop.offsetY  = (crop.vpSize - crop.naturalH * crop.scale) / 2;
+  document.getElementById('crop-zoom').value = 1;
   cropApply();
-}
-
-function cropSliderToScale(sliderVal){
-  // Slider 1–4 mapt naar minScale–4*minScale
-  return crop.minScale * Number(sliderVal);
 }
 
 function cropUpdate(){
-  const sliderVal = Number(document.getElementById('crop-zoom').value);
-  const newScale  = cropSliderToScale(sliderVal);
-  cropZoomTo(newScale, crop.vpSize / 2, crop.vpSize / 2);
+  cropZoomTo(crop.minScale * Number(document.getElementById('crop-zoom').value), crop.vpSize/2, crop.vpSize/2);
 }
 
-function cropZoomTo(newScale, pivotX, pivotY){
-  // Zoom rond een pivot-punt (in viewport-coördinaten)
-  const ratio  = newScale / crop.scale;
-  crop.offsetX = pivotX - ratio * (pivotX - crop.offsetX);
-  crop.offsetY = pivotY - ratio * (pivotY - crop.offsetY);
+function cropZoomTo(newScale, px, py){
+  const ratio = newScale / crop.scale;
+  crop.offsetX = px - ratio*(px - crop.offsetX);
+  crop.offsetY = py - ratio*(py - crop.offsetY);
   crop.scale   = newScale;
-  cropClamp();
-  cropApply();
+  cropClamp(); cropApply();
 }
 
 function cropClamp(){
-  // Zorg dat de afbeelding de cirkelvormige viewport altijd vult
-  const iw = crop.naturalW * crop.scale;
-  const ih = crop.naturalH * crop.scale;
-  const vp = crop.vpSize;
-  if(crop.offsetX > 0)        crop.offsetX = 0;
-  if(crop.offsetY > 0)        crop.offsetY = 0;
-  if(crop.offsetX + iw < vp)  crop.offsetX = vp - iw;
-  if(crop.offsetY + ih < vp)  crop.offsetY = vp - ih;
+  const iw=crop.naturalW*crop.scale, ih=crop.naturalH*crop.scale, vp=crop.vpSize;
+  if(crop.offsetX>0) crop.offsetX=0;
+  if(crop.offsetY>0) crop.offsetY=0;
+  if(crop.offsetX+iw<vp) crop.offsetX=vp-iw;
+  if(crop.offsetY+ih<vp) crop.offsetY=vp-ih;
 }
 
 function cropApply(){
-  const imgEl = document.getElementById('crop-img');
-  imgEl.style.width     = (crop.naturalW * crop.scale) + 'px';
-  imgEl.style.height    = (crop.naturalH * crop.scale) + 'px';
-  imgEl.style.transform = `translate(${crop.offsetX}px, ${crop.offsetY}px)`;
+  const el = document.getElementById('crop-img');
+  el.style.width     = (crop.naturalW*crop.scale)+'px';
+  el.style.height    = (crop.naturalH*crop.scale)+'px';
+  el.style.transform = `translate(${crop.offsetX}px,${crop.offsetY}px)`;
   cropDrawPreview();
 }
 
 function cropDrawPreview(){
-  const canvas = document.getElementById('crop-preview-canvas');
-  const ctx    = canvas.getContext('2d');
-  const size   = canvas.width; // 112px
-  ctx.clearRect(0, 0, size, size);
-  // Teken het gecropte gedeelte
-  const srcX = -crop.offsetX / crop.scale;
-  const srcY = -crop.offsetY / crop.scale;
-  const srcS = crop.vpSize   / crop.scale;
-  ctx.drawImage(crop.img, srcX, srcY, srcS, srcS, 0, 0, size, size);
+  const canvas=document.getElementById('crop-preview-canvas'), ctx=canvas.getContext('2d'), size=canvas.width;
+  ctx.clearRect(0,0,size,size);
+  ctx.drawImage(crop.img, -crop.offsetX/crop.scale, -crop.offsetY/crop.scale, crop.vpSize/crop.scale, crop.vpSize/crop.scale, 0, 0, size, size);
 }
 
 function cropBindEvents(){
-  const vp = document.getElementById('crop-viewport');
-  // Verwijder eventueel oude listeners via klonen
+  const vp    = document.getElementById('crop-viewport');
   const fresh = vp.cloneNode(true);
   vp.parentNode.replaceChild(fresh, vp);
-  // Zet img terug (cloneNode kopieert geen src goed bij grote images)
   fresh.querySelector('#crop-img').src = crop.img.src;
-
-  // Mouse
-  fresh.addEventListener('mousedown',  e => { crop.dragging=true; crop.dragStartX=e.clientX; crop.dragStartY=e.clientY; crop.dragStartOX=crop.offsetX; crop.dragStartOY=crop.offsetY; e.preventDefault(); });
-  window.addEventListener('mousemove', e => {
-    if(!crop.dragging) return;
-    crop.offsetX = crop.dragStartOX + (e.clientX - crop.dragStartX);
-    crop.offsetY = crop.dragStartOY + (e.clientY - crop.dragStartY);
-    cropClamp(); cropApply();
-  });
-  window.addEventListener('mouseup', () => { crop.dragging = false; });
-
-  // Touch – sleep
-  fresh.addEventListener('touchstart', e => {
-    if(e.touches.length === 1){
-      crop.dragging=true;
-      crop.dragStartX=e.touches[0].clientX; crop.dragStartY=e.touches[0].clientY;
-      crop.dragStartOX=crop.offsetX; crop.dragStartOY=crop.offsetY;
-    } else if(e.touches.length === 2){
-      crop.pinching=true; crop.dragging=false;
-      crop.pinchDist0  = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-      crop.pinchScale0 = crop.scale;
-    }
+  fresh.addEventListener('mousedown', e=>{ crop.dragging=true; crop.dragStartX=e.clientX; crop.dragStartY=e.clientY; crop.dragStartOX=crop.offsetX; crop.dragStartOY=crop.offsetY; e.preventDefault(); });
+  window.addEventListener('mousemove', e=>{ if(!crop.dragging)return; crop.offsetX=crop.dragStartOX+(e.clientX-crop.dragStartX); crop.offsetY=crop.dragStartOY+(e.clientY-crop.dragStartY); cropClamp(); cropApply(); });
+  window.addEventListener('mouseup', ()=>{ crop.dragging=false; });
+  fresh.addEventListener('touchstart', e=>{
+    if(e.touches.length===1){ crop.dragging=true; crop.dragStartX=e.touches[0].clientX; crop.dragStartY=e.touches[0].clientY; crop.dragStartOX=crop.offsetX; crop.dragStartOY=crop.offsetY; }
+    else if(e.touches.length===2){ crop.pinching=true; crop.dragging=false; crop.pinchDist0=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); crop.pinchScale0=crop.scale; }
     e.preventDefault();
-  }, {passive:false});
-
-  fresh.addEventListener('touchmove', e => {
-    if(crop.dragging && e.touches.length === 1){
-      crop.offsetX = crop.dragStartOX + (e.touches[0].clientX - crop.dragStartX);
-      crop.offsetY = crop.dragStartOY + (e.touches[0].clientY - crop.dragStartY);
-      cropClamp(); cropApply();
-    } else if(crop.pinching && e.touches.length === 2){
-      const dist    = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-      const newScale = Math.max(crop.minScale, Math.min(crop.minScale*4, crop.pinchScale0 * dist / crop.pinchDist0));
-      const pivotX   = (e.touches[0].clientX + e.touches[1].clientX) / 2 - fresh.getBoundingClientRect().left;
-      const pivotY   = (e.touches[0].clientY + e.touches[1].clientY) / 2 - fresh.getBoundingClientRect().top;
-      // Sync slider
-      document.getElementById('crop-zoom').value = newScale / crop.minScale;
-      cropZoomTo(newScale, pivotX, pivotY);
-    }
+  },{passive:false});
+  fresh.addEventListener('touchmove', e=>{
+    if(crop.dragging&&e.touches.length===1){ crop.offsetX=crop.dragStartOX+(e.touches[0].clientX-crop.dragStartX); crop.offsetY=crop.dragStartOY+(e.touches[0].clientY-crop.dragStartY); cropClamp(); cropApply(); }
+    else if(crop.pinching&&e.touches.length===2){ const dist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); const ns=Math.max(crop.minScale,Math.min(crop.minScale*4,crop.pinchScale0*dist/crop.pinchDist0)); const r=fresh.getBoundingClientRect(); document.getElementById('crop-zoom').value=ns/crop.minScale; cropZoomTo(ns,(e.touches[0].clientX+e.touches[1].clientX)/2-r.left,(e.touches[0].clientY+e.touches[1].clientY)/2-r.top); }
     e.preventDefault();
-  }, {passive:false});
-
-  fresh.addEventListener('touchend', () => { crop.dragging=false; crop.pinching=false; });
+  },{passive:false});
+  fresh.addEventListener('touchend', ()=>{ crop.dragging=false; crop.pinching=false; });
 }
 
-function cancelCrop(){
-  showScreen('s-parent');
-}
+function cancelCrop(){ showScreen('s-parent'); }
 
 async function confirmCrop(){
-  const btn = document.getElementById('crop-save-btn');
-  btn.disabled = true;
+  const btn=document.getElementById('crop-save-btn');
+  btn.disabled=true;
   document.getElementById('crop-uploading').classList.remove('hidden');
   document.getElementById('crop-err').classList.add('hidden');
-
   try{
-    // Render crop naar 400×400 canvas
-    const OUTPUT_SIZE = 400;
-    const canvas = document.createElement('canvas');
-    canvas.width  = OUTPUT_SIZE;
-    canvas.height = OUTPUT_SIZE;
-    const ctx = canvas.getContext('2d');
-    const srcX = -crop.offsetX / crop.scale;
-    const srcY = -crop.offsetY / crop.scale;
-    const srcS = crop.vpSize   / crop.scale;
-    ctx.drawImage(crop.img, srcX, srcY, srcS, srcS, 0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-
-    // POST naar Apps Script
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'action=uploadPhoto&payload=' + encodeURIComponent(JSON.stringify({
-        target_id: crop.targetId,
-        filename:  crop.filename,
-        data_url:  dataUrl
-      }))
-    });
-
-    const data = await response.json();
-    if(!data.ok) throw new Error(data.error || 'Upload mislukt');
-
-    app.state = data.data;
-    renderAll();
-    showSuccess('Foto opgeslagen!', 'De profielfoto is bijgewerkt.', 's-parent');
-
+    const canvas=document.createElement('canvas'); canvas.width=400; canvas.height=400;
+    canvas.getContext('2d').drawImage(crop.img,-crop.offsetX/crop.scale,-crop.offsetY/crop.scale,crop.vpSize/crop.scale,crop.vpSize/crop.scale,0,0,400,400);
+    const dataUrl=canvas.toDataURL('image/jpeg',0.82);
+    const response=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'action=uploadPhoto&payload='+encodeURIComponent(JSON.stringify({target_id:crop.targetId,filename:crop.filename,data_url:dataUrl}))});
+    const data=await response.json();
+    if(!data.ok) throw new Error(data.error||'Upload mislukt');
+    app.state=data.data; renderAll();
+    showSuccess('Foto opgeslagen!','De profielfoto is bijgewerkt.','s-parent');
   }catch(err){
-    const errEl = document.getElementById('crop-err');
-    errEl.textContent = err.message;
-    errEl.classList.remove('hidden');
-    btn.disabled = false;
+    const e=document.getElementById('crop-err'); e.textContent=err.message; e.classList.remove('hidden'); btn.disabled=false;
   }finally{
     document.getElementById('crop-uploading').classList.add('hidden');
   }
 }
 
+// ── WEB AUDIO ────────────────────────────────────────────────
+let audioCtx = null;
+function getAudioCtx(){
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function playTone(freq, duration, type='sine', vol=0.18, delay=0){
+  try{
+    const ctx  = getAudioCtx();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type      = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+    gain.gain.setValueAtTime(vol,  ctx.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+    osc.start(ctx.currentTime + delay);
+    osc.stop(ctx.currentTime + delay + duration + 0.01);
+  }catch(e){}
+}
+function soundDigit(){
+  playTone(440, 0.06, 'sine', 0.12);
+}
+function soundDelete(){
+  playTone(330, 0.04, 'sine', 0.10);
+  playTone(220, 0.07, 'sine', 0.08, 0.04);
+}
+function soundOk(){
+  playTone(523, 0.10, 'sine', 0.18);
+  playTone(659, 0.10, 'sine', 0.18, 0.10);
+}
+function soundError(){
+  // Low brum with slight tremolo feel via two close freqs
+  playTone(160, 0.22, 'triangle', 0.22);
+  playTone(155, 0.22, 'triangle', 0.10);
+}
+function soundApproved(){
+  playTone(523, 0.09, 'sine', 0.16);
+  playTone(659, 0.09, 'sine', 0.16, 0.09);
+  playTone(784, 0.14, 'sine', 0.18, 0.18);
+}
+
+// ── PIN GRID ─────────────────────────────────────────────────
+const PIN_LABELS = {
+  '1':'',  '2':'ABC','3':'DEF',
+  '4':'GHI','5':'JKL','6':'MNO',
+  '7':'PQRS','8':'TUV','9':'WXYZ',
+  '0':''
+};
+
 function buildPinGrid(){
   const grid = document.getElementById('pin-grid');
-  const keys = ['1','2','3','4','5','6','7','8','9','⌫','0','OK'];
-  grid.innerHTML = keys.map(k => `<button class="pin-btn" onclick="tapPin('${k}')">${k}</button>`).join('');
+  const keys = ['1','2','3','4','5','6','7','8','9','⌫','0',''];
+  grid.innerHTML = keys.map(k => {
+    if(k === '') return '<div></div>'; // lege cel rechtsonder
+    if(k === '⌫') return `<button class="pin-btn del-btn" onclick="tapPin('⌫')" aria-label="Verwijder"><svg width="22" height="16" viewBox="0 0 22 16" fill="none"><path d="M8 1L1 8l7 7M1 8h20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
+    const sub = PIN_LABELS[k] ? `<span class="pin-sub">${PIN_LABELS[k]}</span>` : '';
+    return `<button class="pin-btn" onclick="tapPin('${k}')">${k}${sub}</button>`;
+  }).join('');
 }
+
 function resetPin(){
   app.pinBuffer = '';
   document.getElementById('pin-err').classList.add('hidden');
+  const display = document.getElementById('pin-display');
+  display.classList.remove('shake');
   for(let i=0;i<4;i++){
-    const el = document.getElementById('pc'+i);
-    el.textContent = '_';
-    el.classList.remove('filled');
+    const el = document.getElementById('pd'+i);
+    el.className = 'pin-dot';
   }
 }
+
 function updatePinDisplay(){
   for(let i=0;i<4;i++){
+    const el     = document.getElementById('pd'+i);
     const filled = i < app.pinBuffer.length;
-    const el = document.getElementById('pc'+i);
-    el.textContent = filled ? '•' : '_';
-    el.classList.toggle('filled', filled);
+    el.className = 'pin-dot' + (filled ? ' filled' : '');
+    // Kleine bounce op net-gevulde dot
+    if(filled && i === app.pinBuffer.length - 1){
+      el.classList.add('bounce');
+      setTimeout(() => el.classList.remove('bounce'), 250);
+    }
   }
 }
 function goKid(kidId){
@@ -724,15 +670,31 @@ function goParent(){
   showScreen('s-pin');
 }
 function tapPin(key){
-  if(key === '⌫'){ app.pinBuffer = app.pinBuffer.slice(0,-1); updatePinDisplay(); return; }
-  if(key === 'OK'){ validatePin(); return; }
+  if(key === '⌫'){
+    if(app.pinBuffer.length === 0) return;
+    soundDelete();
+    app.pinBuffer = app.pinBuffer.slice(0,-1);
+    updatePinDisplay();
+    // Animate del button
+    const delBtn = document.querySelector('.del-btn');
+    if(delBtn){ delBtn.classList.add('pressed'); setTimeout(()=>delBtn.classList.remove('pressed'),180); }
+    return;
+  }
   if(app.pinBuffer.length >= 4) return;
+  soundDigit();
+  // Button press animation
+  const btns = document.querySelectorAll('.pin-btn');
+  btns.forEach(b => { if(b.textContent.trim().startsWith(key)){ b.classList.add('pressed'); setTimeout(()=>b.classList.remove('pressed'),180); } });
   app.pinBuffer += key;
   updatePinDisplay();
-  if(app.pinBuffer.length === 4) validatePin();
+  if(app.pinBuffer.length === 4) setTimeout(validatePin, 60);
 }
+
 async function validatePin(){
   if(app.pinBuffer.length !== 4 || !app.pinTarget) return;
+  // Blokkeer extra taps tijdens validatie
+  const grid = document.getElementById('pin-grid');
+  grid.style.pointerEvents = 'none';
   try{
     const data = await api('validatePin', {
       role: app.pinTarget.role,
@@ -740,6 +702,10 @@ async function validatePin(){
       pin: app.pinBuffer
     });
     if(data.data.valid){
+      // Groen + geluid
+      for(let i=0;i<4;i++) document.getElementById('pd'+i).className='pin-dot state-ok';
+      soundOk();
+      await new Promise(r => setTimeout(r, 420));
       if(app.pinTarget.role === 'parent'){
         showScreen('s-parent');
       } else {
@@ -748,15 +714,24 @@ async function validatePin(){
         showScreen('s-kid');
       }
       resetPin();
+      grid.style.pointerEvents = '';
       return;
     }
     throw new Error('Onjuiste pincode');
   }catch(err){
+    // Rood + schudden + geluid
+    for(let i=0;i<4;i++) document.getElementById('pd'+i).className='pin-dot state-err';
+    const display = document.getElementById('pin-display');
+    soundError();
+    display.classList.add('shake');
     const el = document.getElementById('pin-err');
-    el.textContent = err.message;
+    el.textContent = err.message || 'Onjuiste pincode';
     el.classList.remove('hidden');
+    await new Promise(r => setTimeout(r, 420));
+    display.classList.remove('shake');
     app.pinBuffer = '';
     updatePinDisplay();
+    grid.style.pointerEvents = '';
   }
 }
 
@@ -1104,6 +1079,7 @@ async function approveExpense(id, btn){
       const data = await api('approveExpense', {expense_id: id});
       app.state = data.data;
       renderAll();
+      soundApproved();
       showSuccess('Verwerkt!', expense && expense.type === 'return' ? 'De retour is verwerkt.' : 'De betaling is verwerkt.', 's-parent');
     }catch(err){
       alert(err.message);
